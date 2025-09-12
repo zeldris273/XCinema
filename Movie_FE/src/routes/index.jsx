@@ -9,6 +9,7 @@ import Watchlist from "../pages/Watchlist";
 import MoviePlayer from "../pages/MoviePlayer";
 import AdminDashboard from "../pages/AdminDashboard";
 import NotFoundPage from "../pages/NotFoundPage";
+import AccountPage from "../pages/AccountPage";
 
 const router = createBrowserRouter([
   {
@@ -52,17 +53,21 @@ const router = createBrowserRouter([
         element: <AuthPage />,
       },
       {
-        path: "watchlist",
+        path: "user/watchlist",
         element: <Watchlist />,
       },
-       {
+      {
         path: "admin-dashboard",
         element: <AdminDashboard />,
       },
       {
+        path: "user/profile",
+        element: <AccountPage />,
+      },
+      {
         path: "*",
         element: <NotFoundPage />,
-      }
+      },
     ],
   },
 ]);

@@ -2,12 +2,17 @@ import React, { useEffect, useState } from "react";
 import api from "../api/api";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
+import { Slug } from "../../utils/Slug";
 
 const Watchlist = () => {
   const [watchlist, setWatchlist] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location]);
 
   const showAlert = (title, text, icon) => {
     Swal.fire({
@@ -18,14 +23,6 @@ const Watchlist = () => {
       color: "#fff",
       confirmButtonColor: "#ffcc00",
     });
-  };
-
-  const createSlug = (title) => {
-    if (!title) return "";
-    let slug = title.toLowerCase().replace(/\s+/g, "-");
-    slug = slug.replace(/[^a-z0-9-]/g, "");
-    slug = slug.replace(/-+/g, "-");
-    return slug;
   };
 
   const fetchWatchlist = async () => {
@@ -75,7 +72,11 @@ const Watchlist = () => {
           MediaType: mediaType,
         },
       });
-      setWatchlist(watchlist.filter(item => !(item.mediaId === mediaId && item.mediaType === mediaType)));
+      setWatchlist(
+        watchlist.filter(
+          (item) => !(item.mediaId === mediaId && item.mediaType === mediaType)
+        )
+      );
       showAlert("", "Removed from Watch List!", "success");
     } catch (err) {
       console.error("Error removing from watchlist:", err);
@@ -83,7 +84,11 @@ const Watchlist = () => {
         showAlert("", "Session expired. Please log in again.", "error");
         navigate("/auth");
       } else {
-        showAlert("", err.response?.data?.error || "Failed to remove from watch list.", "error");
+        showAlert(
+          "",
+          err.response?.data?.error || "Failed to remove from watch list.",
+          "error"
+        );
       }
     }
   };
@@ -94,7 +99,10 @@ const Watchlist = () => {
 
   const handleCardClick = (mediaId, mediaType, title) => {
     const slug = createSlug(title);
-    const path = mediaType === "movie" ? `/movies/${mediaId}/${slug}` : `/tv/${mediaId}/${slug}`;
+    const path =
+      mediaType === "movie"
+        ? `/movies/${mediaId}/${slug}`
+        : `/tv/${mediaId}/${slug}`;
     navigate(path);
   };
 
@@ -125,11 +133,15 @@ const Watchlist = () => {
                 className="relative group"
               >
                 <div
-                  onClick={() => handleCardClick(item.mediaId, item.mediaType, item.title)}
+                  onClick={() =>
+                    handleCardClick(item.mediaId, item.mediaType, item.title)
+                  }
                   className="cursor-pointer"
                 >
                   <img
-                    src={item.posterUrl || "https://via.placeholder.com/230x345"}
+                    src={
+                      item.posterUrl || "https://via.placeholder.com/230x345"
+                    }
                     alt={item.title}
                     className="w-full h-60 object-cover rounded-lg transition-transform duration-300 group-hover:scale-105"
                   />
@@ -139,7 +151,9 @@ const Watchlist = () => {
                 </div>
 
                 <button
-                  onClick={() => handleRemoveFromWatchlist(item.mediaId, item.mediaType)}
+                  onClick={() =>
+                    handleRemoveFromWatchlist(item.mediaId, item.mediaType)
+                  }
                   className="absolute top-2 right-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                 >
                   Remove

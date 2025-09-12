@@ -133,9 +133,9 @@ namespace backend.Controllers
                 EpisodeId = request.EpisodeId,
                 ParentCommentId = request.ParentCommentId,
                 CommentText = request.CommentText,
-                Timestamp = DateTime.Now,
-                CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now
+                Timestamp = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
             };
 
             _context.Comments.Add(comment);

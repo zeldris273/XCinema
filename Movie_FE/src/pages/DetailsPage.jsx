@@ -10,16 +10,8 @@ import api from "../api/api";
 import Swal from "sweetalert2";
 import { FaStar } from "react-icons/fa";
 import { FaUser } from "react-icons/fa";
-  import { jwtDecode } from "jwt-decode";
-
-// Hàm chuyển đổi tiêu đề thành slug
-const createSlug = (title) => {
-  if (!title) return "";
-  let slug = title.toLowerCase().replace(/\s+/g, "-");
-  slug = slug.replace(/[^a-z0-9-]/g, "");
-  slug = slug.replace(/-+/g, "-");
-  return slug;
-};
+import { jwtDecode } from "jwt-decode";
+import { Slug } from "../../utils/Slug";
 
 const DetailsPage = () => {
   const { id, title: urlTitle } = useParams();
@@ -41,7 +33,7 @@ const DetailsPage = () => {
   const [userRating, setUserRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [isAdmin, setIsAdmin] = useState(false); // State cho Admin
-  const [isUser, setIsUser] = useState(false);   // State cho user
+  const [isUser, setIsUser] = useState(false); // State cho user
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -53,26 +45,26 @@ const DetailsPage = () => {
     }
   }, [fetchedData]);
 
-  useEffect(() => {
-    const checkWatchList = async () => {
-      const token = localStorage.getItem("accessToken");
-      if (!token) return;
+  // useEffect(() => {
+  //   const checkWatchList = async () => {
+  //     const token = localStorage.getItem("accessToken");
+  //     if (!token) return;
 
-      try {
-        const response = await api.get("/api/watchlist");
-        const watchList = response.data;
-        const exists = watchList.some(
-          (item) =>
-            item.mediaId === parseInt(id) && item.mediaType === mediaType
-        );
-        setIsInWatchList(exists);
-      } catch (err) {
-        console.error("Error checking watchlist:", err);
-      }
-    };
+  //     try {
+  //       const response = await api.get("/api/watchlist");
+  //       const watchList = response.data;
+  //       const exists = watchList.some(
+  //         (item) =>
+  //           item.mediaId === parseInt(id) && item.mediaType === mediaType
+  //       );
+  //       setIsInWatchList(exists);
+  //     } catch (err) {
+  //       console.error("Error checking watchlist:", err);
+  //     }
+  //   };
 
-    checkWatchList();
-  }, [id, mediaType]);
+  //   checkWatchList();
+  // }, [id, mediaType]);
 
   useEffect(() => {
     const fetchEpisodes = async () => {
@@ -112,7 +104,10 @@ const DetailsPage = () => {
     if (token) {
       try {
         const decoded = jwtDecode(token);
-        const role = decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
+        const role =
+          decoded[
+            "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
+          ];
         setIsAdmin(role === "Admin");
         setIsUser(role === "User"); // Kiểm tra role là "user"
 
@@ -204,7 +199,7 @@ const DetailsPage = () => {
       return null;
     }
     try {
-      const slug = createSlug(data.title);
+      const slug = Slug(data.title);
       const response = await api.get(
         `/api/${mediaType === "movie" ? "movies" : "tvseries"}/${id}/${slug}`
       );
@@ -216,73 +211,76 @@ const DetailsPage = () => {
   };
 
   const handleRatingSubmit = async (rating) => {
-  const token = localStorage.getItem("accessToken");
-  if (!token) {
-    Swal.fire({
-      title: "",
-      text: "Please log in to rate this media.",
-      icon: "error",
-      background: "#222222",
-      color: "#fff",
-      confirmButtonColor: "#ffcc00",
-    });
-    navigate("/auth");
-    return;
-  }
-
-  try {
-    const response = await api.post("/api/ratings", {
-      MediaId: parseInt(id),
-      MediaType: mediaType,
-      Rating: rating,
-    });
-
-    if (response.status === 200) {
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
       Swal.fire({
         title: "",
-        text: "Thank you for your rating!",
-        icon: "success",
+        text: "Please log in to rate this media.",
+        icon: "error",
         background: "#222222",
         color: "#fff",
         confirmButtonColor: "#ffcc00",
       });
-
-      if (response.data.averageRating && response.data.numberOfRatings) {
-        setData((prevData) => ({
-          ...prevData,
-          rating: response.data.averageRating,
-          numberOfRatings: response.data.numberOfRatings,
-        }));
-      }
-
-      const updatedData = await fetchMediaDetails();
-      if (updatedData) {
-        setData(updatedData);
-      }
-    }
-  } catch (error) {
-    console.error("Error submitting rating:", error.response?.data || error.message);
-    let errorMessage = "Failed to submit rating.";
-    if (error.response?.status === 401) {
-      errorMessage = "Session expired. Please log in again.";
-      // Interceptor đã xử lý refresh, nhưng nếu thất bại, chuyển hướng
-      if (!localStorage.getItem("accessToken")) {
-        navigate("/auth");
-      }
-    } else if (error.response?.data?.error) {
-      errorMessage = error.response.data.error;
+      navigate("/auth");
+      return;
     }
 
-    Swal.fire({
-      title: "",
-      text: errorMessage,
-      icon: "error",
-      background: "#222222",
-      color: "#fff",
-      confirmButtonColor: "#ffcc00",
-    });
-  }
-};
+    try {
+      const response = await api.post("/api/ratings", {
+        MediaId: parseInt(id),
+        MediaType: mediaType,
+        Rating: rating,
+      });
+
+      if (response.status === 200) {
+        Swal.fire({
+          title: "",
+          text: "Thank you for your rating!",
+          icon: "success",
+          background: "#222222",
+          color: "#fff",
+          confirmButtonColor: "#ffcc00",
+        });
+
+        if (response.data.averageRating && response.data.numberOfRatings) {
+          setData((prevData) => ({
+            ...prevData,
+            rating: response.data.averageRating,
+            numberOfRatings: response.data.numberOfRatings,
+          }));
+        }
+
+        const updatedData = await fetchMediaDetails();
+        if (updatedData) {
+          setData(updatedData);
+        }
+      }
+    } catch (error) {
+      console.error(
+        "Error submitting rating:",
+        error.response?.data || error.message
+      );
+      let errorMessage = "Failed to submit rating.";
+      if (error.response?.status === 401) {
+        errorMessage = "Session expired. Please log in again.";
+        // Interceptor đã xử lý refresh, nhưng nếu thất bại, chuyển hướng
+        if (!localStorage.getItem("accessToken")) {
+          navigate("/auth");
+        }
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      }
+
+      Swal.fire({
+        title: "",
+        text: errorMessage,
+        icon: "error",
+        background: "#222222",
+        color: "#fff",
+        confirmButtonColor: "#ffcc00",
+      });
+    }
+  };
 
   const handlePlayVideo = (data) => {
     setPlayVideoId(data);
@@ -291,12 +289,12 @@ const DetailsPage = () => {
 
   const handlePlayNow = () => {
     if (mediaType === "movie") {
-      const slug = createSlug(data.title);
+      const slug = Slug(data.title);
       navigate(`/movies/${data.id}/${slug}/watch`);
     } else if (mediaType === "tv") {
       const firstEpisode = episodes[0];
       if (firstEpisode) {
-        const slug = createSlug(data.title);
+        const slug = Slug(data.title);
         const episodeNumber = firstEpisode.episode_number || 1;
         navigate(`/tvseries/${data.id}/${slug}/episode/${episodeNumber}/watch`);
       } else {

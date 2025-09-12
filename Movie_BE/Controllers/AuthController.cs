@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using backend.Services;
 using backend.Models;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Hosting;
 
 namespace backend.Controllers
 {
@@ -11,11 +12,13 @@ namespace backend.Controllers
     {
         private readonly AuthService _authService;
         private readonly SignInManager<CustomUser> _signInManager;
+        private readonly IWebHostEnvironment _env;
 
-        public AuthController(AuthService authService, SignInManager<CustomUser> signInManager)
+        public AuthController(AuthService authService, SignInManager<CustomUser> signInManager, IWebHostEnvironment env)
         {
             _signInManager = signInManager;
             _authService = authService;
+            _env = env;
         }
 
         [HttpPost("login")]
@@ -31,13 +34,13 @@ namespace backend.Controllers
             var cookieOptions = new CookieOptions
             {
                 HttpOnly = true,
-                Secure = true,
+                Secure = !_env.IsDevelopment(),
                 Expires = DateTime.UtcNow.AddDays(7),
                 SameSite = SameSiteMode.None
             };
             Response.Cookies.Append("RefreshToken", refreshToken, cookieOptions);
 
-            return Ok(new { AccessToken = accessToken });
+            return Ok(new { accessToken = accessToken });
         }
 
         [HttpPost("logout")]
@@ -96,7 +99,7 @@ namespace backend.Controllers
             var cookieOptions = new CookieOptions
             {
                 HttpOnly = true,
-                Secure = true,
+                Secure = !_env.IsDevelopment(),
                 Expires = DateTime.UtcNow.AddDays(7),
                 SameSite = SameSiteMode.None
             };
@@ -104,7 +107,7 @@ namespace backend.Controllers
             Response.Cookies.Delete("RefreshToken");
             Response.Cookies.Append("RefreshToken", newRefreshToken, cookieOptions);
 
-            return Ok(new { AccessToken = newAccessToken });
+            return Ok(new { accessToken = newAccessToken });
         }
 
         // API để yêu cầu đặt lại mật khẩu
@@ -173,7 +176,7 @@ namespace backend.Controllers
             var cookieOptions = new CookieOptions
             {
                 HttpOnly = true,
-                Secure = true,
+                Secure = !_env.IsDevelopment(),
                 Expires = DateTime.UtcNow.AddDays(7),
                 SameSite = SameSiteMode.None
             };

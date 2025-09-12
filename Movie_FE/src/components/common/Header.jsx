@@ -71,14 +71,19 @@ const Header = () => {
   };
 
   const handleWatchList = () => {
-    navigate("/watchlist");
+    navigate("/user/watchlist");
     setIsUserMenuOpen(false);
     setIsHovered(false);
   };
 
-
   const handleAdminDashboard = () => {
     navigate("/admin-dashboard");
+    setIsUserMenuOpen(false);
+    setIsHovered(false);
+  };
+
+  const handleUserProfile = () => {
+    navigate("/user/profile");
     setIsUserMenuOpen(false);
     setIsHovered(false);
   };
@@ -132,7 +137,10 @@ const Header = () => {
         </nav>
 
         <div className="ml-auto flex items-center gap-3">
-          <form className="flex items-center gap-2 hidden lg:flex" onSubmit={handleSubmit}>
+          <form
+            className="flex items-center gap-2 hidden lg:flex"
+            onSubmit={handleSubmit}
+          >
             <input
               type="text"
               placeholder="Search here..."
@@ -182,12 +190,20 @@ const Header = () => {
                     </button>
                   </div>
                 ) : (
-                  <button
-                    onClick={handleWatchList}
-                    className="block w-full text-left px-4 py-2 hover:bg-neutral-600 transition-colors duration-200"
-                  >
-                    Watch List
-                  </button>
+                  <div>
+                    <button
+                      onClick={handleWatchList}
+                      className="block w-full text-left px-4 py-2 hover:bg-neutral-600 transition-colors duration-200"
+                    >
+                      Watch List
+                    </button>
+                    <button
+                      onClick={handleUserProfile}
+                      className="block w-full text-left px-4 py-2 hover:bg-neutral-600 transition-colors duration-200"
+                    >
+                      Profile
+                    </button>
+                  </div>
                 )}
                 <button
                   onClick={handleLogout}

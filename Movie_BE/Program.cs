@@ -45,14 +45,9 @@ builder.Services.AddSwaggerGen(c =>
     c.OperationFilter<SwaggerFileUploadOperationFilter>();
 });
 
-// Đăng ký DbContext với MySQL
+// Add DbContext with PostgreSQL
 builder.Services.AddDbContext<MovieDbContext>(options =>
-    options.UseMySql(builder.Configuration.GetConnectionString("DefaultConnection"),
-        serverVersion: new MySqlServerVersion(new Version(8, 0, 29)),
-        mySqlOptions => mySqlOptions.EnableRetryOnFailure(
-            maxRetryCount: 5,
-            maxRetryDelay: TimeSpan.FromSeconds(30),
-            errorNumbersToAdd: null)));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Thêm Identity
 builder.Services.AddIdentity<CustomUser, IdentityRole<int>>(options =>
@@ -185,10 +180,10 @@ using (var scope = app.Services.CreateScope())
     {
         Console.WriteLine($"=== USER INFO ===");
         Console.WriteLine($"User ID: {testUser.Id}, Email: {testUser.Email}");
-        
+
         var userRoles = await userManager.GetRolesAsync(testUser);
         Console.WriteLine($"User Roles: {string.Join(", ", userRoles)}");
-        
+
         // Nếu user chưa có role Admin, gán cho user
         if (!userRoles.Contains("Admin"))
         {
@@ -196,7 +191,7 @@ using (var scope = app.Services.CreateScope())
             if (addRoleResult.Succeeded)
             {
                 Console.WriteLine("Đã gán role Admin cho user thành công!");
-                
+
                 // Kiểm tra lại
                 var updatedRoles = await userManager.GetRolesAsync(testUser);
                 Console.WriteLine($"Updated User Roles: {string.Join(", ", updatedRoles)}");

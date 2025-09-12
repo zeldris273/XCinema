@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\nvh\\Downloads\\Compressed\\DoAn\\Movie_BE\\backend.csproj": {}
+    "D:\\XCinema\\Movie_BE\\backend.csproj": {}
   },
   "projects": {
-    "C:\\Users\\nvh\\Downloads\\Compressed\\DoAn\\Movie_BE\\backend.csproj": {
+    "D:\\XCinema\\Movie_BE\\backend.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\nvh\\Downloads\\Compressed\\DoAn\\Movie_BE\\backend.csproj",
+        "projectUniqueName": "D:\\XCinema\\Movie_BE\\backend.csproj",
         "projectName": "backend",
-        "projectPath": "C:\\Users\\nvh\\Downloads\\Compressed\\DoAn\\Movie_BE\\backend.csproj",
+        "projectPath": "D:\\XCinema\\Movie_BE\\backend.csproj",
         "packagesPath": "C:\\Users\\nvh\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\nvh\\Downloads\\Compressed\\DoAn\\Movie_BE\\obj\\",
+        "outputPath": "D:\\XCinema\\Movie_BE\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\nvh\\AppData\\Roaming\\NuGet\\NuGet.Config"
@@ -85,9 +85,9 @@
               "target": "Package",
               "version": "[6.0.0, )"
             },
-            "MySql.Data": {
+            "Npgsql.EntityFrameworkCore.PostgreSQL": {
               "target": "Package",
-              "version": "[8.4.0, )"
+              "version": "[8.0.3, )"
             },
             "OpenAI": {
               "target": "Package",

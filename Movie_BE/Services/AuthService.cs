@@ -83,9 +83,9 @@ namespace backend.Services
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-            // Lấy danh sách role của user
+            // Lấy một role duy nhất cho user (ưu tiên Admin)
             var roles = await _userManager.GetRolesAsync(user);
-            var roleClaims = roles.Select(role => new Claim(ClaimTypes.Role, role));
+            var primaryRole = roles.Contains("Admin") ? "Admin" : roles.FirstOrDefault();
 
             var claims = new List<Claim>
             {
@@ -93,7 +93,10 @@ namespace backend.Services
                 new Claim(ClaimTypes.Email, user.Email),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
-            claims.AddRange(roleClaims);
+            if (!string.IsNullOrEmpty(primaryRole))
+            {
+                claims.Add(new Claim(ClaimTypes.Role, primaryRole));
+            }
 
             var token = new JwtSecurityToken(
                 issuer: _config["Jwt:Issuer"],
@@ -111,16 +114,19 @@ namespace backend.Services
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:RefreshKey"]));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-            // Lấy danh sách role của user
+            // Lấy một role duy nhất cho user (ưu tiên Admin)
             var roles = await _userManager.GetRolesAsync(user);
-            var roleClaims = roles.Select(role => new Claim(ClaimTypes.Role, role));
+            var primaryRole = roles.Contains("Admin") ? "Admin" : roles.FirstOrDefault();
 
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim(ClaimTypes.Email, user.Email)
             };
-            claims.AddRange(roleClaims);
+            if (!string.IsNullOrEmpty(primaryRole))
+            {
+                claims.Add(new Claim(ClaimTypes.Role, primaryRole));
+            }
 
             var token = new JwtSecurityToken(
                 issuer: _config["Jwt:Issuer"],
