@@ -1,18 +1,46 @@
 import { useEffect, useState } from "react";
+import api from "../api/api.jsx";
+import { useUserProfile } from "../hooks/useUserProfile";
 
 export default function AccountPage() {
   const [avatar, setAvatar] = useState(null);
-  const [name, setName] = useState("nvh");
-  const [email, setEmail] = useState("nvh.27304@gmail.com");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [gender, setGender] = useState("Nam");
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const { profile, updateProfile } = useUserProfile();
 
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, [location]);
+  }, []);
+
+  useEffect(() => {
+    if (profile) {
+      setName(profile.displayName || "");
+      setEmail(profile.email || "");
+      setGender(profile.gender || "Nam");
+      if (profile.avatarUrl) {
+        setAvatar(profile.avatarUrl);
+      }
+    }
+  }, [profile]);
 
   const handleAvatarChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Kiểm tra kích thước file (tối đa 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setMessage("Kích thước file quá lớn. Vui lòng chọn file nhỏ hơn 5MB.");
+        return;
+      }
+
+      // Kiểm tra loại file
+      if (!file.type.startsWith("image/")) {
+        setMessage("Vui lòng chọn file ảnh hợp lệ.");
+        return;
+      }
+
       const reader = new FileReader();
       reader.onload = () => {
         setAvatar(reader.result);
@@ -21,16 +49,71 @@ export default function AccountPage() {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log({ email, name, gender, avatar });
-    alert("Thông tin đã được cập nhật!");
+    setLoading(true);
+    setMessage("");
+
+    try {
+      const formData = new FormData();
+      formData.append("displayName", name);
+      formData.append("gender", gender);
+
+      // Thêm avatar nếu có file được chọn
+      const fileInput = document.querySelector('input[type="file"]');
+      if (fileInput && fileInput.files[0]) {
+        formData.append("avatar", fileInput.files[0]);
+      }
+
+      const response = await api.put("/api/auth/profile", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      setMessage("Thông tin đã được cập nhật thành công!");
+
+      // Cập nhật profile trong hook
+      updateProfile(response.data);
+
+      // Cập nhật avatar URL nếu có
+      if (response.data.avatarUrl) {
+        setAvatar(response.data.avatarUrl);
+      }
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      setMessage("Có lỗi xảy ra khi cập nhật thông tin. Vui lòng thử lại.");
+    } finally {
+      setLoading(false);
+    }
   };
+
+  if (loading && !profile) {
+    return (
+      <div className="max-w-md mx-auto p-6 mt-12 text-white">
+        <div className="flex justify-center items-center h-64">
+          <div className="text-lg">Đang tải...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-md mx-auto p-6 mt-12 text-white">
       <h2 className="text-2xl font-bold mb-2">Tài khoản</h2>
       <p className="mb-6 text-gray-300">Cập nhật thông tin tài khoản</p>
+
+      {message && (
+        <div
+          className={`mb-4 p-3 rounded ${
+            message.includes("thành công")
+              ? "bg-green-600 text-white"
+              : "bg-red-600 text-white"
+          }`}
+        >
+          {message}
+        </div>
+      )}
 
       {/* Avatar */}
       <div className="flex flex-col items-center mb-6">
@@ -104,9 +187,14 @@ export default function AccountPage() {
 
         <button
           type="submit"
-          className="bg-yellow-400 text-black px-4 py-2 rounded hover:bg-yellow-500"
+          disabled={loading}
+          className={`px-4 py-2 rounded ${
+            loading
+              ? "bg-gray-500 cursor-not-allowed"
+              : "bg-yellow-400 text-black hover:bg-yellow-500"
+          }`}
         >
-          Cập nhật
+          {loading ? "Đang cập nhật..." : "Cập nhật"}
         </button>
       </form>
 

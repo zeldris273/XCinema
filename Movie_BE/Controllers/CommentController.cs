@@ -233,6 +233,8 @@ namespace backend.Controllers
                 Id = comment.Id,
                 UserId = comment.UserId,
                 Username = comment.User.Email,
+                DisplayName = comment.User.DisplayName ?? comment.User.Email,
+                AvatarUrl = comment.User.AvatarUrl,
                 MovieId = comment.MovieId,
                 TvSeriesId = comment.TvSeriesId,
                 EpisodeId = comment.EpisodeId,

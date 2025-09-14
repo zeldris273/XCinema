@@ -10,6 +10,8 @@ namespace backend.DTOs
         public int Id { get; set; }
         public int UserId { get; set; }
         public string Username { get; set; }
+        public string DisplayName { get; set; }
+        public string? AvatarUrl { get; set; }
         public int? MovieId { get; set; }
         public int? TvSeriesId { get; set; }
         public int? EpisodeId { get; set; }

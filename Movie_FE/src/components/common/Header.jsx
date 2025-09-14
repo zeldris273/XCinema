@@ -7,12 +7,14 @@ import { navigation } from "../../constants/navigation";
 import { useSelector, useDispatch } from "react-redux";
 import { logoutUser } from "../../store/authSlice";
 import { jwtDecode } from "jwt-decode";
+import { useUserProfile } from "../../hooks/useUserProfile";
 
 const Header = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { token } = useSelector((state) => state.auth);
+  const { profile } = useUserProfile();
 
   const removeSpace = location?.search?.slice(3)?.split("%20")?.join(" ");
   const [searchInput, setSearchInput] = useState(removeSpace || "");
@@ -138,7 +140,7 @@ const Header = () => {
 
         <div className="ml-auto flex items-center gap-3">
           <form
-            className="flex items-center gap-2 hidden lg:flex"
+            className="hidden lg:flex items-center gap-2"
             onSubmit={handleSubmit}
           >
             <input
@@ -164,7 +166,7 @@ const Header = () => {
                 onClick={toggleUserMenu}
               >
                 <img
-                  src={userImg}
+                  src={profile?.avatarUrl || userImg}
                   alt="User"
                   className="w-full h-full object-cover bg-gray-300"
                 />

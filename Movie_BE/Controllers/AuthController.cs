@@ -3,6 +3,8 @@ using backend.Services;
 using backend.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Hosting;
+using backend.DTOs;
+using Microsoft.AspNetCore.Authorization;
 
 namespace backend.Controllers
 {
@@ -13,12 +15,14 @@ namespace backend.Controllers
         private readonly AuthService _authService;
         private readonly SignInManager<CustomUser> _signInManager;
         private readonly IWebHostEnvironment _env;
+        private readonly S3Service _s3Service;
 
-        public AuthController(AuthService authService, SignInManager<CustomUser> signInManager, IWebHostEnvironment env)
+        public AuthController(AuthService authService, SignInManager<CustomUser> signInManager, IWebHostEnvironment env, S3Service s3Service)
         {
             _signInManager = signInManager;
             _authService = authService;
             _env = env;
+            _s3Service = s3Service;
         }
 
         [HttpPost("login")]
@@ -185,6 +189,51 @@ namespace backend.Controllers
             // Chuyển hướng về frontend với token (có thể điều chỉnh URL)
             string frontendUrl = "http://localhost:5173/auth";
             return Redirect($"{frontendUrl}?token={Uri.EscapeDataString(accessToken)}");
+        }
+
+        [HttpGet("profile")]
+        [Authorize]
+        public async Task<IActionResult> GetProfile()
+        {
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+                return Unauthorized("Invalid user");
+
+            var profile = await _authService.GetUserProfile(userId);
+            if (profile == null)
+                return NotFound("User not found");
+
+            return Ok(profile);
+        }
+
+        [HttpPut("profile")]
+        [Authorize]
+        public async Task<IActionResult> UpdateProfile([FromForm] UpdateProfileDTO updateProfileDto, IFormFile? avatar)
+        {
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+                return Unauthorized("Invalid user");
+
+            string? avatarUrl = null;
+            
+            // Upload avatar nếu có
+            if (avatar != null && avatar.Length > 0)
+            {
+                try
+                {
+                    avatarUrl = await _s3Service.UploadFileAsync(avatar, "avatars");
+                }
+                catch (Exception ex)
+                {
+                    return BadRequest($"Failed to upload avatar: {ex.Message}");
+                }
+            }
+
+            var result = await _authService.UpdateUserProfile(userId, updateProfileDto, avatarUrl);
+            if (result == null)
+                return BadRequest("Failed to update profile");
+
+            return Ok(result);
         }
     }
 

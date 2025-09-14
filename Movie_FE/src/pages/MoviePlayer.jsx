@@ -120,8 +120,7 @@ const MoviePlayer = () => {
       setComments(response.data);
     } catch (err) {
       setError(
-        "Failed to load comments: " +
-          (err.response?.data?.error || err.message)
+        "Failed to load comments: " + (err.response?.data?.error || err.message)
       );
     }
   };
@@ -176,7 +175,8 @@ const MoviePlayer = () => {
   }, [id, title, episodeNumber, mediaType]);
 
   const getEpisodeId = () => {
-    if (mediaType !== "tv" || !episodeNumber || episodes.length === 0) return null;
+    if (mediaType !== "tv" || !episodeNumber || episodes.length === 0)
+      return null;
     const epNum = parseInt(episodeNumber.replace("episode-", "") || "0", 10);
     const episode = episodes.find(
       (ep) => (ep.episode_number || ep.episodeNumber) === epNum
@@ -195,8 +195,21 @@ const MoviePlayer = () => {
         console.error("Play failed:", err.message);
         setError("Failed to play video. Please click play manually.");
       });
+      // Log view when user starts playing
+      logView();
     }
     setIsPlaying(!isPlaying);
+  };
+
+  const logView = async () => {
+    try {
+      await api.post("/api/viewlog/log", {
+        contentId: parseInt(id),
+        contentType: mediaType === "movie" ? "movie" : "tvseries",
+      });
+    } catch (error) {
+      console.error("Failed to log view:", error);
+    }
   };
 
   const handleSeek = (e) => {
@@ -460,12 +473,24 @@ const MoviePlayer = () => {
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <span className="font-semibold text-sm sm:text-base">
-              {comment.username}
-            </span>
-            <span className="text-gray-400 text-xs sm:text-sm">
-              {new Date(comment.timestamp).toLocaleString()}
-            </span>
+            <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full overflow-hidden bg-gray-600 flex-shrink-0">
+              <img
+                src={comment.avatarUrl || "/src/assets/user.png"}
+                alt="User Avatar"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.target.src = "/src/assets/user.png";
+                }}
+              />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-semibold text-sm sm:text-base">
+                {comment.displayName || comment.username}
+              </span>
+              <span className="text-gray-400 text-xs sm:text-sm">
+                {new Date(comment.timestamp).toLocaleString()}
+              </span>
+            </div>
           </div>
           {comment.userId === currentUserId && (
             <div className="relative">

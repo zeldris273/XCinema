@@ -50,15 +50,13 @@ export default function MovieCarousel() {
         <div
           className="flex transition-transform duration-500 ease-in-out"
           style={{
-            transform: `translateX(-${current * (100 / itemsPerView)}%)`,
-            width: `${(movies.length / itemsPerView) * 100}%`,
+            transform: `translateX(-${current * 25}%)`, // 25% = 100% / 4 items
           }}
         >
           {movies.map((movie) => (
             <div
               key={movie.id}
-              className="flex-shrink-0 px-2"
-              style={{ width: `${100 / movies.length}%` }}
+              className="flex-shrink-0 w-1/4 px-2" // w-1/4 = 25% width cho 4 items
             >
               <div
                 className="bg-[#1a1a29] rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer"
@@ -164,8 +162,6 @@ export default function MovieCarousel() {
             </button>
           </>
         )}
-
-        {/* Dots indicator (optional) */}
       </div>
     </div>
   );

@@ -8,6 +8,7 @@ using System.Net.Mail;
 using System.Net;
 using backend.Models;
 using Microsoft.EntityFrameworkCore;
+using backend.DTOs;
 
 namespace backend.Services
 {
@@ -85,7 +86,7 @@ namespace backend.Services
 
             // Lấy một role duy nhất cho user (ưu tiên Admin)
             var roles = await _userManager.GetRolesAsync(user);
-            var primaryRole = roles.Contains("Admin") ? "Admin" : roles.FirstOrDefault();
+            var primaryRole = roles.Contains("User") ? "User" : roles.FirstOrDefault();
 
             var claims = new List<Claim>
             {
@@ -280,6 +281,53 @@ namespace backend.Services
                 return user;
             }
             return null;
+        }
+
+        public async Task<UpdateProfileResponseDTO?> UpdateUserProfile(int userId, UpdateProfileDTO updateProfileDto, string? avatarUrl = null)
+        {
+            var user = await _userManager.FindByIdAsync(userId.ToString());
+            if (user == null)
+                return null;
+
+            user.DisplayName = updateProfileDto.DisplayName;
+            user.Gender = updateProfileDto.Gender;
+            
+            if (!string.IsNullOrEmpty(avatarUrl))
+            {
+                user.AvatarUrl = avatarUrl;
+            }
+
+            var result = await _userManager.UpdateAsync(user);
+            if (result.Succeeded)
+            {
+                return new UpdateProfileResponseDTO
+                {
+                    Id = user.Id,
+                    Email = user.Email,
+                    DisplayName = user.DisplayName,
+                    Gender = user.Gender,
+                    AvatarUrl = user.AvatarUrl,
+                    CreatedAt = user.CreatedAt
+                };
+            }
+            return null;
+        }
+
+        public async Task<UpdateProfileResponseDTO?> GetUserProfile(int userId)
+        {
+            var user = await _userManager.FindByIdAsync(userId.ToString());
+            if (user == null)
+                return null;
+
+            return new UpdateProfileResponseDTO
+            {
+                Id = user.Id,
+                Email = user.Email,
+                DisplayName = user.DisplayName ?? string.Empty,
+                Gender = user.Gender ?? string.Empty,
+                AvatarUrl = user.AvatarUrl,
+                CreatedAt = user.CreatedAt
+            };
         }
     }
 }
