@@ -17,11 +17,11 @@ const SearchPage = () => {
     try {
       const response = await axios.get("http://localhost:5116/api/search/all", {
         params: {
-          title: query,
+          query: query,
         },
       });
       console.log("Search results: ", response.data.results);
-      setData((prev) => [...prev, ...response.data.results]);
+      setData(response.data.results);
     } catch (error) {
       console.error("Error fetching search results: ", error);
     } finally {
@@ -33,8 +33,6 @@ const SearchPage = () => {
     setData([]);
     fetchData();
   }, [location?.search]);
-
-  
 
   // useEffect(() => {
   //   const handleScroll = () => {
@@ -51,7 +49,7 @@ const SearchPage = () => {
   //   return () => window.removeEventListener("scroll", handleScroll);
   // }, [page, totalPages, loading]);
 
-useEffect(() => {
+  useEffect(() => {
     window.scrollTo(0, 0);
   }, [location]);
 

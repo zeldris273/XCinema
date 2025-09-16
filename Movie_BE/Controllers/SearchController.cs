@@ -17,59 +17,97 @@ namespace backend.Controllers
         }
 
         [HttpGet("all")]
-        public async Task<IActionResult> SearchAll([FromQuery] string? title)
+        public async Task<IActionResult> SearchAll(
+     [FromQuery] string? query,
+     [FromQuery] string? genre,
+     [FromQuery] int? year,
+     [FromQuery] double? minRating)
         {
             try
             {
-                if (string.IsNullOrEmpty(title))
+                if (string.IsNullOrWhiteSpace(query) && genre == null && year == null && minRating == null)
                 {
-                    return BadRequest(new { message = "Vui lòng cung cấp từ khóa tìm kiếm." });
+                    return BadRequest(new { message = "Vui lòng nhập từ khóa hoặc chọn bộ lọc." });
                 }
 
-                // Tìm kiếm movies
-                var moviesQuery = _context.Movies
-                    .Where(m => m.Title.ToLower().Contains(title.ToLower()))
-                    .Select(m => new SearchResultDTO
-                    {
-                        Id = m.Id,
-                        Type = "Movie",
-                        Title = m.Title,
-                        ReleaseDate = m.ReleaseDate,
-                        Rating = (double?)m.Rating,
-                        PosterUrl = m.PosterUrl, // Sửa từ ImageUrl thành PosterUrl
-                        BackdropUrl = m.BackdropUrl
-                    });
+                // Movies
+                var movies = _context.Movies.AsQueryable();
+                if (!string.IsNullOrEmpty(query))
+                {
+                    var normalized = query.Trim();
+                    // Build prefix tsquery (e.g., "sol:* & level:*"), enabling partial term matches
+                    var terms = normalized.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                                          .Select(t => t + ":*");
+                    var tsQueryString = string.Join(" & ", terms);
 
-                // Tìm kiếm TV series
-                var tvSeriesQuery = _context.TvSeries
-                    .Where(t => t.Title.ToLower().Contains(title.ToLower()))
-                    .Select(t => new SearchResultDTO
-                    {
-                        Id = t.Id,
-                        Type = "TvSeries",
-                        Title = t.Title,
-                        ReleaseDate = t.ReleaseDate,
-                        Rating = (double?)t.Rating,
-                        PosterUrl = t.PosterUrl, // Sửa từ ImageUrl thành PosterUrl
-                        BackdropUrl = t.BackdropUrl
-                    });
+                    movies = movies.Where(m =>
+                        EF.Functions.ToTsVector("english", (m.Title ?? string.Empty) + " " + (m.Overview ?? string.Empty))
+                            .Matches(EF.Functions.ToTsQuery("english", tsQueryString)));
+                }
+                if (!string.IsNullOrEmpty(genre))
+                    movies = movies.Where(m => m.Genres.ToLower().Contains(genre.ToLower()));
+                if (year.HasValue)
+                    movies = movies.Where(m => m.ReleaseDate.HasValue && m.ReleaseDate.Value.Year == year.Value);
+                if (minRating.HasValue)
+                    movies = movies.Where(m => m.Rating >= (decimal)minRating.Value);
 
-                // Gộp query
-                var combinedQuery = moviesQuery.Concat(tvSeriesQuery);
+                var moviesQuery = movies.Select(m => new SearchResultDTO
+                {
+                    Id = m.Id,
+                    Type = "Movie",
+                    Title = m.Title,
+                    ReleaseDate = m.ReleaseDate,
+                    Rating = (double?)m.Rating,
+                    PosterUrl = m.PosterUrl,
+                    BackdropUrl = m.BackdropUrl
+                });
 
-                var results = await combinedQuery.ToListAsync();
+                // TV Series
+                var tv = _context.TvSeries.AsQueryable();
+                if (!string.IsNullOrEmpty(query))
+                {
+                    var normalized = query.Trim();
+                    var terms = normalized.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                                          .Select(t => t + ":*");
+                    var tsQueryString = string.Join(" & ", terms);
+
+                    tv = tv.Where(t =>
+                        EF.Functions.ToTsVector("english", (t.Title ?? string.Empty) + " " + (t.Overview ?? string.Empty))
+                            .Matches(EF.Functions.ToTsQuery("english", tsQueryString)));
+                }
+                if (!string.IsNullOrEmpty(genre))
+                    tv = tv.Where(t => t.Genres.ToLower().Contains(genre.ToLower()));
+                if (year.HasValue)
+                    tv = tv.Where(t => t.ReleaseDate.HasValue && t.ReleaseDate.Value.Year == year.Value);
+                if (minRating.HasValue)
+                    tv = tv.Where(t => t.Rating >= (decimal)minRating.Value);
+
+                var tvSeriesQuery = tv.Select(t => new SearchResultDTO
+                {
+                    Id = t.Id,
+                    Type = "TvSeries",
+                    Title = t.Title,
+                    ReleaseDate = t.ReleaseDate,
+                    Rating = (double?)t.Rating,
+                    PosterUrl = t.PosterUrl,
+                    BackdropUrl = t.BackdropUrl
+                });
+
+                // Gộp lại
+                var results = await moviesQuery.Concat(tvSeriesQuery)
+                    .OrderByDescending(r => r.Rating)
+                    .ToListAsync();
 
                 if (!results.Any())
-                {
-                    return NotFound(new { message = "Không tìm thấy movie hoặc TV series nào phù hợp." });
-                }
+                    return NotFound(new { message = "Không tìm thấy kết quả phù hợp." });
 
-                return Ok(new { results });
+                return Ok(new { count = results.Count, results });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { error = "Đã xảy ra lỗi khi tìm kiếm.", details = ex.Message });
+                return StatusCode(500, new { error = "Lỗi khi tìm kiếm.", details = ex.Message });
             }
         }
+
     }
 }

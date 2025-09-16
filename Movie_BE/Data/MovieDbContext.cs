@@ -23,5 +23,31 @@ namespace backend.Data
         public DbSet<TvSeriesActor> TvSeriesActors { get; set; }
 
         public DbSet<ViewLog> ViewLogs { get; set; }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            // Movie SearchVector
+            modelBuilder.Entity<Movie>()
+                .HasGeneratedTsVectorColumn(
+                    p => p.SearchVector,
+                    "english",            // Ngôn ngữ phân tích
+                    p => new { p.Title, p.Overview }
+                )
+                .HasIndex(p => p.SearchVector)
+                .HasMethod("GIN");
+
+            // TvSeries SearchVector
+            modelBuilder.Entity<TvSeries>()
+                .HasGeneratedTsVectorColumn(
+                    p => p.SearchVector,
+                    "english",
+                    p => new { p.Title, p.Overview }
+                )
+                .HasIndex(p => p.SearchVector)
+                .HasMethod("GIN");
+        }
+
     }
 }

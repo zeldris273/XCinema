@@ -601,6 +601,17 @@ namespace backend.Controllers
         public async Task<IActionResult> GetMostViewedTvSeries()
         {
             var mostViewedTvSeries = await _context.TvSeries
+                .Select(t => new
+                {
+                    t.Id,
+                    t.Title,
+                    t.PosterUrl,
+                    t.BackdropUrl,
+                    Rating = (double?)t.Rating,
+                    NumberOfRatings = t.NumberOfRatings ?? 0,
+                    ViewCount = t.ViewCount ?? 0,
+                    ReleaseDate = t.ReleaseDate
+                })
                 .OrderByDescending(t => t.ViewCount)
                 .Take(20)
                 .ToListAsync();

@@ -311,6 +311,17 @@ namespace backend.Controllers
         public async Task<IActionResult> GetTopRatedMoviesByVotes()
         {
             var topMovies = await _context.Movies
+                .Select(m => new
+                {
+                    m.Id,
+                    m.Title,
+                    m.PosterUrl,
+                    m.BackdropUrl,
+                    Rating = (double?)m.Rating,
+                    NumberOfRatings = m.NumberOfRatings ?? 0,
+                    ViewCount = (int?)(m.ViewCount) ?? 0,
+                    ReleaseDate = m.ReleaseDate
+                })
                 .OrderByDescending(m => m.NumberOfRatings)
                 .Take(20)
                 .ToListAsync();

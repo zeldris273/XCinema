@@ -53,9 +53,9 @@ export default function MovieCarousel() {
             transform: `translateX(-${current * 25}%)`, // 25% = 100% / 4 items
           }}
         >
-          {movies.map((movie) => (
+          {movies.map((movie, index) => (
             <div
-              key={movie.id}
+              key={`${movie.id}-${index}`}
               className="flex-shrink-0 w-1/4 px-2" // w-1/4 = 25% width cho 4 items
             >
               <div

@@ -1,6 +1,7 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 using Movie_BE.Models;
+using NpgsqlTypes;
 
 namespace backend.Models
 {
@@ -14,10 +15,10 @@ namespace backend.Models
 
         public string Overview { get; set; }
 
-        public string Genres { get; set; } // JSON hoặc chuỗi phân tách bằng dấu phẩy
+        public string Genres { get; set; }
 
         [Required]
-        public string Status { get; set; } // Upcoming, Released, Canceled
+        public string Status { get; set; }
 
         public DateTime? ReleaseDate { get; set; }
 
@@ -25,14 +26,16 @@ namespace backend.Models
 
         public string Director { get; set; }
 
-        public string PosterUrl { get; set; } // Ảnh đại diện (poster)
-        public string BackdropUrl { get; set; } // Ảnh đại diện (poster)
+        public string PosterUrl { get; set; }
+        public string BackdropUrl { get; set; }
         public decimal? Rating { get; set; }
-        public int? NumberOfRatings { get; set; } 
+        public int? NumberOfRatings { get; set; }
 
-        public string VideoUrl { get; set; } // Link video từ S3
-        public string? TrailerUrl { get; set; } // Link video từ S3
+        public string VideoUrl { get; set; }
+        public string? TrailerUrl { get; set; }
         public int ViewCount { get; set; }
+
+        public NpgsqlTsVector? SearchVector { get; set; }
         public List<Comment> Comments { get; set; } = new List<Comment>();
         public List<MovieActor> MovieActors { get; set; } = new List<MovieActor>();
     }

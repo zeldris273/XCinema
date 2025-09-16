@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Movie_BE.Models;
+using NpgsqlTypes;
 
 namespace backend.Models
 {
@@ -26,7 +27,7 @@ namespace backend.Models
 
         public string Director { get; set; }
 
-        public string PosterUrl { get; set; } 
+        public string PosterUrl { get; set; }
 
         public string BackdropUrl { get; set; }
         public decimal? Rating { get; set; }
@@ -34,6 +35,8 @@ namespace backend.Models
         public int? ViewCount { get; set; }
 
         public string? TrailerUrl { get; set; }
+
+        public NpgsqlTsVector? SearchVector { get; set; }
 
         public List<Season> Seasons { get; set; } = new List<Season>();
         public List<Comment> Comments { get; set; } = new List<Comment>();
