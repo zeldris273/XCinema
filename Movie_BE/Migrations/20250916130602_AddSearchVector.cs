@@ -13,25 +13,11 @@ namespace backend.Migrations
         {
             migrationBuilder.AddColumn<NpgsqlTsVector>(
                 name: "SearchVector",
-                table: "TvSeries",
-                type: "tsvector",
-                nullable: false)
-                .Annotation("Npgsql:TsVectorConfig", "english")
-                .Annotation("Npgsql:TsVectorProperties", new[] { "Title", "Overview" });
-
-            migrationBuilder.AddColumn<NpgsqlTsVector>(
-                name: "SearchVector",
                 table: "Movies",
                 type: "tsvector",
                 nullable: false)
                 .Annotation("Npgsql:TsVectorConfig", "english")
                 .Annotation("Npgsql:TsVectorProperties", new[] { "Title", "Overview" });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_TvSeries_SearchVector",
-                table: "TvSeries",
-                column: "SearchVector")
-                .Annotation("Npgsql:IndexMethod", "GIN");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Movies_SearchVector",
