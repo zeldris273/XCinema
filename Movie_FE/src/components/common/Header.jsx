@@ -8,6 +8,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { logoutUser } from "../../store/authSlice";
 import { jwtDecode } from "jwt-decode";
 import { useUserProfile } from "../../hooks/useUserProfile";
+import { FiLogOut } from "react-icons/fi";
 
 const Header = () => {
   const location = useLocation();
@@ -243,8 +244,9 @@ const Header = () => {
                 )}
                 <button
                   onClick={handleLogout}
-                  className="block w-full text-left px-4 py-2 hover:bg-neutral-600 transition-colors duration-200"
+                  className="flex items-center  w-full text-left px-4 py-2 hover:bg-neutral-600 text-red-400 duration-200"
                 >
+                  <FiLogOut className="mr-1" />
                   Logout
                 </button>
               </div>

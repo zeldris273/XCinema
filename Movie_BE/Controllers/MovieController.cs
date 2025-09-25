@@ -10,6 +10,7 @@ using backend.Services;
 using System.Text.RegularExpressions;
 using Movie_BE.Models;
 using Movie_BE.DTOs;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace backend.Controllers
 {
@@ -24,6 +25,48 @@ namespace backend.Controllers
         {
             _context = context;
             _s3Service = s3Service;
+        }
+
+        private async Task<Actor> GetOrCreateActorAsync(string rawName, CancellationToken cancellationToken = default)
+        {
+            var normalized = (rawName ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(normalized))
+            {
+                throw new ArgumentException("Actor name is empty");
+            }
+
+            var existing = await _context.Actors
+                .FirstOrDefaultAsync(a => a.Name.ToLower() == normalized.ToLower(), cancellationToken);
+            if (existing != null)
+            {
+                return existing;
+            }
+
+            // Try create, guard against race conditions
+            var actor = new Actor
+            {
+                Name = normalized,
+                CreatedAt = DateTime.UtcNow
+            };
+            _context.Actors.Add(actor);
+            try
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+                return actor;
+            }
+            catch (DbUpdateException)
+            {
+                // Another request may have inserted the same actor concurrently
+                var fallback = await _context.Actors
+                    .FirstOrDefaultAsync(a => a.Name.ToLower() == normalized.ToLower(), cancellationToken);
+                if (fallback != null)
+                {
+                    // Discard the tracked failed insert entity
+                    _context.Entry(actor).State = EntityState.Detached;
+                    return fallback;
+                }
+                throw;
+            }
         }
 
         [HttpPost("create")]
@@ -97,30 +140,15 @@ namespace backend.Controllers
 
                 foreach (var actorName in actors)
                 {
-                    if (!string.IsNullOrWhiteSpace(actorName))
+                    if (string.IsNullOrWhiteSpace(actorName)) continue;
+                    var actor = await GetOrCreateActorAsync(actorName);
+                    var movieActor = new MovieActor
                     {
-                        var actor = await _context.Actors
-                            .FirstOrDefaultAsync(a => a.Name.ToLower() == actorName.ToLower());
-
-                        if (actor == null)
-                        {
-                            actor = new Actor
-                            {
-                                Name = actorName,
-                                CreatedAt = DateTime.UtcNow
-                            };
-                            _context.Actors.Add(actor);
-                            await _context.SaveChangesAsync();
-                        }
-
-                        var movieActor = new MovieActor
-                        {
-                            MovieId = movie.Id,
-                            ActorId = actor.Id,
-                            CharacterName = "" // Có thể thêm trường để nhập tên nhân vật
-                        };
-                        _context.Set<MovieActor>().Add(movieActor);
-                    }
+                        MovieId = movie.Id,
+                        ActorId = actor.Id,
+                        CharacterName = ""
+                    };
+                    _context.Set<MovieActor>().Add(movieActor);
                 }
 
                 await _context.SaveChangesAsync();
@@ -268,25 +296,20 @@ namespace backend.Controllers
                 // Thêm các diễn viên mới
                 foreach (var actorDto in updatedMovie.Actors)
                 {
-                    var actor = await _context.Actors
-                        .FirstOrDefaultAsync(a => a.Id == actorDto.Id);
+                    var actor = actorDto.Id > 0
+                        ? await _context.Actors.FirstOrDefaultAsync(a => a.Id == actorDto.Id)
+                        : null;
 
                     if (actor == null)
                     {
-                        actor = new Actor
-                        {
-                            Name = actorDto.Name,
-                            CreatedAt = DateTime.UtcNow
-                        };
-                        _context.Actors.Add(actor);
-                        await _context.SaveChangesAsync();
+                        actor = await GetOrCreateActorAsync(actorDto.Name ?? string.Empty);
                     }
 
                     var movieActor = new MovieActor
                     {
                         MovieId = movie.Id,
                         ActorId = actor.Id,
-                        CharacterName = "" // Có thể thêm trường để nhập tên nhân vật
+                        CharacterName = ""
                     };
                     _context.MovieActors.Add(movieActor);
                 }
