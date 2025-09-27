@@ -70,6 +70,8 @@ namespace backend.Controllers
         }
 
         [HttpPost("create")]
+        [Authorize(Roles = "Admin")]
+
         public async Task<IActionResult> Create([FromForm] MovieUploadDTO model)
         {
             try
@@ -268,6 +270,8 @@ namespace backend.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")]
+
         public async Task<IActionResult> UpdateMovie(int id, [FromBody] MovieResponseDTO updatedMovie)
         {
             var movie = await _context.Movies
@@ -320,6 +324,7 @@ namespace backend.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public IActionResult DeleteMovie(int id)
         {
             var movie = _context.Movies.Find(id);

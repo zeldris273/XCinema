@@ -40,7 +40,9 @@ namespace backend.Controllers
                 HttpOnly = true,
                 Secure = !_env.IsDevelopment(),
                 Expires = DateTime.UtcNow.AddDays(7),
-                SameSite = SameSiteMode.None
+                SameSite = _env.IsDevelopment() ? SameSiteMode.Lax : SameSiteMode.None,
+                Domain = null,
+                Path = "/"
             };
             Response.Cookies.Append("RefreshToken", refreshToken, cookieOptions);
 
@@ -97,18 +99,20 @@ namespace backend.Controllers
             if (user == null)
                 return Unauthorized("Invalid or expired refresh token");
 
-            var newAccessToken = await _authService.GenerateJwtToken(user); // Sử dụng await
-            var newRefreshToken = await _authService.GenerateRefreshToken(user); // Sử dụng await
+            var newAccessToken = await _authService.GenerateJwtToken(user);
+            var newRefreshToken = await _authService.GenerateRefreshToken(user);
+
 
             var cookieOptions = new CookieOptions
             {
                 HttpOnly = true,
                 Secure = !_env.IsDevelopment(),
                 Expires = DateTime.UtcNow.AddDays(7),
-                SameSite = SameSiteMode.None
+                SameSite = _env.IsDevelopment() ? SameSiteMode.Lax : SameSiteMode.None,
+                Domain = null,
+                Path = "/"
             };
-            // Xóa cookie cũ trước khi thêm mới
-            Response.Cookies.Delete("RefreshToken");
+
             Response.Cookies.Append("RefreshToken", newRefreshToken, cookieOptions);
 
             return Ok(new { accessToken = newAccessToken });
@@ -182,7 +186,9 @@ namespace backend.Controllers
                 HttpOnly = true,
                 Secure = !_env.IsDevelopment(),
                 Expires = DateTime.UtcNow.AddDays(7),
-                SameSite = SameSiteMode.None
+                SameSite = _env.IsDevelopment() ? SameSiteMode.Lax : SameSiteMode.None,
+                Domain = null,
+                Path = "/"
             };
             Response.Cookies.Append("RefreshToken", refreshToken, cookieOptions);
 
@@ -215,7 +221,7 @@ namespace backend.Controllers
                 return Unauthorized("Invalid user");
 
             string? avatarUrl = null;
-            
+
             // Upload avatar nếu có
             if (avatar != null && avatar.Length > 0)
             {

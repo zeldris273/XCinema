@@ -144,7 +144,7 @@ namespace backend.Controllers
         }
 
         [HttpPost("create")]
-        [Authorize(Roles = "admin")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> CreateTvSeries([FromForm] TvSeriesUploadDTO model)
         {
             try
@@ -255,7 +255,7 @@ namespace backend.Controllers
         }
 
         [HttpPost("seasons")]
-        [Authorize(Roles = "admin")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> CreateSeason([FromBody] SeasonDTO model)
         {
             try
@@ -297,7 +297,7 @@ namespace backend.Controllers
         }
 
         [HttpPost("episodes/upload")]
-        [Authorize(Roles = "admin")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> UploadEpisode([FromForm] EpisodeUploadDTO model)
         {
             try
@@ -461,7 +461,7 @@ namespace backend.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize(Roles = "admin")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> UpdateTvSeries(int id, [FromBody] TvSeriesResponseDTO model)
         {
             try
@@ -557,7 +557,7 @@ namespace backend.Controllers
         }
 
         [HttpDelete("{id}")]
-        [Authorize(Roles = "admin")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteTvSeries(int id)
         {
             try
