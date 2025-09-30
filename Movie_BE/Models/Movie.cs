@@ -15,7 +15,6 @@ namespace backend.Models
 
         public string Overview { get; set; }
 
-        public string Genres { get; set; }
 
         [Required]
         public string Status { get; set; }
@@ -36,6 +35,7 @@ namespace backend.Models
         public int ViewCount { get; set; }
 
         public NpgsqlTsVector? SearchVector { get; set; }
+        public List<MovieGenre> MovieGenres { get; set; } = new();
         public List<Comment> Comments { get; set; } = new List<Comment>();
         public List<MovieActor> MovieActors { get; set; } = new List<MovieActor>();
     }

@@ -33,27 +33,32 @@ namespace backend.Controllers
         public IActionResult GetAllTvSeries()
         {
             var series = _context.TvSeries
-                .Select(s => new TvSeriesResponseDTO
-                {
-                    Id = s.Id,
-                    Title = s.Title,
-                    Rating = (double?)s.Rating,
-                    ReleaseDate = s.ReleaseDate,
-                    PosterUrl = s.PosterUrl,
-                    Genres = s.Genres,
-                    Status = s.Status,
-                    Overview = s.Overview,
-                    Director = s.Director,
-                    Studio = s.Studio,
-                    TrailerUrl = s.TrailerUrl,
-                    Actors = s.TvSeriesActors.Select(ta => new ActorDTO
-                    {
-                        Id = ta.Actor.Id,
-                        Name = ta.Actor.Name
-                    }).ToList(),
-                    BackdropUrl = s.BackdropUrl
-                })
-                .ToList();
+     .Include(s => s.TvSeriesGenres)
+         .ThenInclude(tg => tg.Genre)
+     .Include(s => s.TvSeriesActors)
+         .ThenInclude(ta => ta.Actor)
+     .Select(s => new TvSeriesResponseDTO
+     {
+         Id = s.Id,
+         Title = s.Title,
+         Rating = (double?)s.Rating,
+         ReleaseDate = s.ReleaseDate,
+         PosterUrl = s.PosterUrl,
+         Genres = s.TvSeriesGenres.Select(tg => tg.Genre.Name).ToList(),
+         GenreIds = s.TvSeriesGenres.Select(tg => tg.GenreId).ToList(),
+         Status = s.Status,
+         Overview = s.Overview,
+         Director = s.Director,
+         Studio = s.Studio,
+         TrailerUrl = s.TrailerUrl,
+         BackdropUrl = s.BackdropUrl,
+         Actors = s.TvSeriesActors.Select(ta => new ActorDTO
+         {
+             Id = ta.Actor.Id,
+             Name = ta.Actor.Name
+         }).ToList()
+     })
+     .ToList();
             return Ok(series);
         }
 
@@ -90,7 +95,6 @@ namespace backend.Controllers
                 Overview = series.Overview,
                 Rating = (double?)series.Rating,
                 NumberOfRatings = series.NumberOfRatings,
-                Genres = series.Genres,
                 Status = series.Status,
                 ReleaseDate = series.ReleaseDate,
                 Studio = series.Studio,
@@ -174,7 +178,6 @@ namespace backend.Controllers
                 {
                     Title = model.Title,
                     Overview = model.Overview,
-                    Genres = model.Genres != null ? string.Join(",", model.Genres) : null,
                     Status = model.Status,
                     ReleaseDate = model.ReleaseDate,
                     Studio = model.Studio,
@@ -183,6 +186,23 @@ namespace backend.Controllers
                     BackdropUrl = backdropPosterUrl
                 };
                 _context.TvSeries.Add(series);
+                await _context.SaveChangesAsync();
+
+                // Gán genres
+                if (model.GenreIds != null && model.GenreIds.Any())
+                {
+                    foreach (var genreId in model.GenreIds)
+                    {
+                        if (await _context.Genres.AnyAsync(g => g.Id == genreId))
+                        {
+                            _context.TvSeriesGenres.Add(new TvSeriesGenre
+                            {
+                                TvSeriesId = series.Id,
+                                GenreId = genreId
+                            });
+                        }
+                    }
+                }
                 await _context.SaveChangesAsync();
 
                 var season = new Season
@@ -233,7 +253,6 @@ namespace backend.Controllers
                     Id = series.Id,
                     Title = series.Title,
                     Overview = series.Overview,
-                    Genres = series.Genres,
                     Status = series.Status,
                     ReleaseDate = series.ReleaseDate,
                     Studio = series.Studio,
@@ -476,7 +495,6 @@ namespace backend.Controllers
                 // Cập nhật các trường cơ bản
                 series.Title = model.Title ?? series.Title;
                 series.Overview = model.Overview ?? series.Overview;
-                series.Genres = model.Genres ?? series.Genres;
                 series.Status = model.Status ?? series.Status;
                 series.ReleaseDate = model.ReleaseDate ?? series.ReleaseDate;
                 series.Studio = model.Studio ?? series.Studio;
@@ -484,6 +502,27 @@ namespace backend.Controllers
                 series.PosterUrl = model.PosterUrl ?? series.PosterUrl;
                 series.BackdropUrl = model.BackdropUrl ?? series.BackdropUrl;
                 series.TrailerUrl = model.TrailerUrl ?? series.TrailerUrl;
+
+                // Xóa genres cũ
+                var oldGenres = _context.TvSeriesGenres.Where(tg => tg.TvSeriesId == series.Id);
+                _context.TvSeriesGenres.RemoveRange(oldGenres);
+
+                // Thêm genres mới
+                if (model.GenreIds != null && model.GenreIds.Any())
+                {
+                    foreach (var genreId in model.GenreIds)
+                    {
+                        if (await _context.Genres.AnyAsync(g => g.Id == genreId))
+                        {
+                            _context.TvSeriesGenres.Add(new TvSeriesGenre
+                            {
+                                TvSeriesId = series.Id,
+                                GenreId = genreId
+                            });
+                        }
+                    }
+                }
+
 
                 // Kiểm tra Status hợp lệ
                 var validStatuses = new[] { "Ongoing", "Completed", "Canceled" };
@@ -534,7 +573,6 @@ namespace backend.Controllers
                     Overview = series.Overview,
                     Rating = (double?)series.Rating,
                     NumberOfRatings = series.NumberOfRatings,
-                    Genres = series.Genres,
                     Status = series.Status,
                     ReleaseDate = series.ReleaseDate,
                     Studio = series.Studio,

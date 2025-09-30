@@ -24,7 +24,8 @@ namespace backend.DTOs
         public double? Rating { get; set; }
         public int? NumberOfRatings { get; set; }
         public string Overview { get; set; }
-        public string Genres { get; set; }
+        public List<int> GenreIds { get; set; } = new List<int>();
+        public List<string> Genres { get; set; } = new List<string>();
         public string Status { get; set; }
         public DateTime? ReleaseDate { get; set; }
         public string Studio { get; set; }
@@ -34,12 +35,12 @@ namespace backend.DTOs
         public string TrailerUrl { get; set; }
         public List<ActorDTO> Actors { get; set; }
     }
-    
+
     public class TvSeriesUploadDTO
     {
         public string Title { get; set; }
         public string Overview { get; set; }
-        public List<string> Genres { get; set; }
+        public List<int> GenreIds { get; set; } = new List<int>();
         public string Status { get; set; }
         public DateTime? ReleaseDate { get; set; }
         public string Studio { get; set; }

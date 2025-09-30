@@ -9,7 +9,7 @@ import {
 } from "../store/authSlice";
 import { useNavigate, useLocation } from "react-router-dom";
 import api from "../api/api";
-import Swal from "sweetalert2";
+import customSwal from "../utils/customSwal";
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -53,9 +53,7 @@ export default function AuthPage() {
     };
   };
 
-  const validateOtp = (otp) => {
-    return otp && /^\d{6}$/.test(otp.trim()); // Giả sử OTP là 6 chữ số
-  };
+  const validateOtp = (otp) => /^\d{6}$/.test(otp.trim());
 
   // Countdown timer for OTP resend
   useEffect(() => {
@@ -68,7 +66,6 @@ export default function AuthPage() {
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    // Kiểm tra token từ URL sau khi đăng nhập Google/GitHub
     const urlParams = new URLSearchParams(location.search);
     const token = urlParams.get("token");
     if (token) {
@@ -78,20 +75,7 @@ export default function AuthPage() {
     }
   }, [location, navigate, dispatch]);
 
-  // Alert function
-  const showAlert = (title, text, icon) => {
-    Swal.fire({
-      title,
-      text,
-      icon,
-      background: "#222222",
-      color: "#fff",
-      confirmButtonColor: "#ffcc00",
-      confirmButtonText: "OK",
-    });
-  };
-
-  // Reset form function
+  // Reset form
   const resetForm = () => {
     setEmail("");
     setPassword("");
@@ -117,9 +101,8 @@ export default function AuthPage() {
 
   // Handle OTP send
   const handleSendOtp = async () => {
-    // Validate email first
     if (!email || !validateEmail(email)) {
-      showAlert(
+      customSwal(
         "Invalid Email",
         "Please enter a valid email address.",
         "warning"
@@ -127,9 +110,8 @@ export default function AuthPage() {
       return;
     }
 
-    // Check if still in countdown
     if (countdown > 0) {
-      showAlert(
+      customSwal(
         "Please Wait",
         `Please wait ${countdown} seconds before requesting a new OTP.`,
         "info"
@@ -146,17 +128,15 @@ export default function AuthPage() {
       const response = await api.post(
         endpoint,
         { email },
-        {
-          withCredentials: true,
-        }
+        { withCredentials: true }
       );
 
       if (response.status === 200) {
         setIsOtpSent(true);
-        setCountdown(60); // 60 seconds countdown
-        showAlert(
+        setCountdown(60);
+        customSwal(
           "OTP Sent",
-          "OTP has been sent to your email. Please check your inbox and spam folder.",
+          "OTP has been sent to your email. Please check your inbox.",
           "success"
         );
       }
@@ -166,19 +146,18 @@ export default function AuthPage() {
         err.response?.data ||
         err.message ||
         "Failed to send OTP";
-      showAlert("Failed to Send OTP", errorMessage, "error");
+      customSwal("Failed to Send OTP", errorMessage, "error");
     } finally {
       setOtpLoading(false);
     }
   };
 
-  // Handle form submission
+  // Handle form submit
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Email validation
     if (!email || !validateEmail(email)) {
-      showAlert(
+      customSwal(
         "Invalid Email",
         "Please enter a valid email address.",
         "warning"
@@ -186,43 +165,39 @@ export default function AuthPage() {
       return;
     }
 
-    // Password validation
     if (!password) {
-      showAlert("Password Required", "Please enter your password.", "warning");
+      customSwal("Password Required", "Please enter your password.", "warning");
       return;
     }
 
     const passwordValidation = validatePassword(password);
     if (!passwordValidation.isValid && !isLogin) {
-      const missingRequirements = [];
+      const missing = [];
       if (!passwordValidation.errors.minLength)
-        missingRequirements.push("at least 6 characters");
+        missing.push("at least 6 characters");
       if (!passwordValidation.errors.hasUpperCase)
-        missingRequirements.push("one uppercase letter");
+        missing.push("one uppercase letter");
       if (!passwordValidation.errors.hasLowerCase)
-        missingRequirements.push("one lowercase letter");
-      if (!passwordValidation.errors.hasNumber)
-        missingRequirements.push("one number");
+        missing.push("one lowercase letter");
+      if (!passwordValidation.errors.hasNumber) missing.push("one number");
       if (!passwordValidation.errors.hasSpecialChar)
-        missingRequirements.push("one special character");
+        missing.push("one special character");
 
-      showAlert(
+      customSwal(
         "Weak Password",
-        `Password must contain: ${missingRequirements.join(", ")}.`,
+        `Password must contain: ${missing.join(", ")}.`,
         "warning"
       );
       return;
     }
 
-    // OTP validation for registration and forgot password
     if (isForgotPassword || !isLogin) {
       if (!isOtpSent) {
-        showAlert("OTP Required", "Please send OTP first.", "warning");
+        customSwal("OTP Required", "Please send OTP first.", "warning");
         return;
       }
-
       if (!validateOtp(otp)) {
-        showAlert(
+        customSwal(
           "Invalid OTP",
           "Please enter a valid 6-digit OTP.",
           "warning"
@@ -233,7 +208,6 @@ export default function AuthPage() {
 
     try {
       if (isForgotPassword) {
-        // Reset password flow
         const response = await api.post(
           "/api/auth/reset-password",
           {
@@ -241,41 +215,27 @@ export default function AuthPage() {
             otp: otp.trim(),
             password,
           },
-          {
-            withCredentials: true,
-          }
+          { withCredentials: true }
         );
 
         if (response.status === 200) {
-          showAlert(
+          customSwal(
             "Success",
-            "Password has been reset successfully. Please login with your new password.",
+            "Password has been reset successfully. Please login again.",
             "success"
           );
           switchMode("login");
         }
       } else if (isLogin) {
-        // Login flow
-        await dispatch(
-          loginUser({
-            email: email.trim(),
-            password,
-          })
-        ).unwrap();
+        await dispatch(loginUser({ email: email.trim(), password })).unwrap();
         navigate("/");
       } else {
-        // Registration flow
         await dispatch(
-          registerUser({
-            email: email.trim(),
-            password,
-            otp: otp.trim(),
-          })
+          registerUser({ email: email.trim(), password, otp: otp.trim() })
         ).unwrap();
-
-        showAlert(
+        customSwal(
           "Registration Successful",
-          "Your account has been created successfully. Welcome!",
+          "Your account has been created successfully.",
           "success"
         );
         resetForm();
@@ -283,35 +243,27 @@ export default function AuthPage() {
       }
     } catch (err) {
       console.error("Auth error:", err);
-
       let errorMessage = "An unknown error occurred";
-
-      if (err.response?.data?.message) {
-        errorMessage = err.response.data.message;
-      } else if (err.response?.data) {
+      if (err.response?.data?.message) errorMessage = err.response.data.message;
+      else if (err.response?.data)
         errorMessage =
           typeof err.response.data === "string"
             ? err.response.data
             : "Authentication failed";
-      } else if (err.message) {
-        errorMessage = err.message;
-      } else if (typeof err === "string") {
-        errorMessage = err;
-      }
+      else if (err.message) errorMessage = err.message;
+      else if (typeof err === "string") errorMessage = err;
 
       const titles = {
         forgot: "Password Reset Failed",
         login: "Login Failed",
         register: "Registration Failed",
       };
-
       const currentMode = isForgotPassword
         ? "forgot"
         : isLogin
         ? "login"
         : "register";
-
-      showAlert(titles[currentMode], errorMessage, "error");
+      customSwal(titles[currentMode], errorMessage, "error");
     }
   };
 
@@ -324,24 +276,23 @@ export default function AuthPage() {
     } catch (err) {
       const errorMessage =
         err.response?.data?.message || err.message || "Logout failed";
-      showAlert("Logout Failed", errorMessage, "error");
+      customSwal("Logout Failed", errorMessage, "error");
     }
   };
 
-  // Social login handlers
+  // Social login
   const handleGoogleLogin = () => {
     window.location.href = `${
       import.meta.env.VITE_API_URL
     }/api/auth/login/google`;
   };
-
   const handleGitHubLogin = () => {
     window.location.href = `${
       import.meta.env.VITE_API_URL
     }/api/auth/login/github`;
   };
 
-  // Get button text
+  // UI helper
   const getButtonText = () => {
     if (loading) return "Processing...";
     if (isForgotPassword) return "Reset Password";
@@ -349,7 +300,6 @@ export default function AuthPage() {
     return "Register";
   };
 
-  // Check if form is valid
   const isFormValid = () => {
     if (!email || !validateEmail(email) || !password) return false;
     if ((isForgotPassword || !isLogin) && (!isOtpSent || !validateOtp(otp)))

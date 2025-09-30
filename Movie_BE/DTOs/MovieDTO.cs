@@ -37,8 +37,7 @@ public class MovieUploadDTO
 
     public string Overview { get; set; }
 
-    public string Genres { get; set; }
-
+    public List<int> GenreIds { get; set; } = new List<int>();
     [Required(ErrorMessage = "Status is required")]
     public string Status { get; set; }
 
@@ -50,7 +49,7 @@ public class MovieUploadDTO
     public string Studio { get; set; }
 
     public string Director { get; set; }
-    public string Actors { get; set; } 
+    public string Actors { get; set; }
 
     [Required(ErrorMessage = "VideoFile is required")]
     public IFormFile VideoFile { get; set; }
@@ -62,22 +61,24 @@ public class MovieUploadDTO
     public IFormFile BackdropFile { get; set; } // Đổi tên từ BackdropImageFile
 }
 
-   public class MovieResponseDTO
-    {
-        public int Id { get; set; }
-        public string Title { get; set; }
-        public double? Rating { get; set; }
-        public int? NumberOfRatings { get; set; }
-        public string Overview { get; set; }
-        public string Genres { get; set; }
-        public string Status { get; set; }
-        public DateTime? ReleaseDate { get; set; }
-        public string Studio { get; set; }
-        public string Director { get; set; }
-        public string VideoUrl { get; set; }
+public class MovieResponseDTO
+{
+    public int Id { get; set; }
+    public string Title { get; set; }
+    public double? Rating { get; set; }
+    public int? NumberOfRatings { get; set; }
+    public string Overview { get; set; }
+    public List<int> GenreIds { get; set; } = new List<int>(); // id
 
-        public string PosterUrl { get; set; }
-        public string BackdropUrl { get; set; }
-        public string TrailerUrl { get; set; }
-        public List<ActorDTO> Actors { get; set; }
-    }
+    public List<string> Genres { get; set; } = new List<string>();
+    public string Status { get; set; }
+    public DateTime? ReleaseDate { get; set; }
+    public string Studio { get; set; }
+    public string Director { get; set; }
+    public string VideoUrl { get; set; }
+
+    public string PosterUrl { get; set; }
+    public string BackdropUrl { get; set; }
+    public string TrailerUrl { get; set; }
+    public List<ActorDTO> Actors { get; set; }
+}

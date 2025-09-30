@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import api from "../api/api";
 import { jwtDecode } from "jwt-decode";
-import Swal from "sweetalert2";
+import customSwal from "../utils/customSwal";
 import { useNavigate } from "react-router-dom";
 import TabNavigation from "../components/dashboard/TabNavigation";
 import ErrorMessage from "../components/ErrorMessage";
@@ -11,6 +11,8 @@ import AddEpisodeForm from "../components/dashboard/AddEpisodeForm";
 import MovieTable from "../components/dashboard/MovieTable";
 import TvSeriesTable from "../components/dashboard/TvSeriesTable";
 import UploadProgress from "../components/dashboard/UploadProgress";
+import GenreTable from "../components/dashboard/GenreTable";
+import ActorTable from "../components/dashboard/ActorTable";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -108,14 +110,11 @@ const AdminDashboard = () => {
           ] === "Admin";
         setIsAdmin(adminRole);
         if (!adminRole) {
-          Swal.fire({
-            title: "Cảnh báo!",
-            text: "Bạn không có quyền truy cập trang này!",
-            icon: "warning",
-            background: "#1f2937",
-            color: "#fff",
-            confirmButtonColor: "#facc15",
-          });
+          customSwal(
+            "Cảnh báo!",
+            "Bạn không có quyền truy cập trang này!",
+            "warning"
+          );
           navigate("/");
         } else {
           fetchMovies();
@@ -123,25 +122,11 @@ const AdminDashboard = () => {
         }
       } catch (err) {
         console.error("Error decoding token:", err);
-        Swal.fire({
-          title: "Lỗi!",
-          text: "Token không hợp lệ!",
-          icon: "error",
-          background: "#1f2937",
-          color: "#fff",
-          confirmButtonColor: "#facc15",
-        });
+        customSwal("Lỗi!", "Token không hợp lệ!", "error");
         navigate("/auth");
       }
     } else {
-      Swal.fire({
-        title: "Lỗi!",
-        text: "Bạn chưa đăng nhập!",
-        icon: "error",
-        background: "#1f2937",
-        color: "#fff",
-        confirmButtonColor: "#facc15",
-      });
+      customSwal("Lỗi!", "Bạn chưa đăng nhập!", "error");
       navigate("/auth");
     }
   }, [navigate]);
@@ -280,14 +265,7 @@ const AdminDashboard = () => {
       });
       setUploadProgress(0);
       setError(null);
-      Swal.fire({
-        title: "Thành công!",
-        text: "Thêm phim thành công!",
-        icon: "success",
-        background: "#1f2937",
-        color: "#fff",
-        confirmButtonColor: "#facc15",
-      });
+      customSwal("Thành công!", "Thêm phim thành công!", "success");
     } catch (err) {
       setError(
         "Failed to add movie: " + (err.response?.data?.error || err.message)
@@ -350,14 +328,7 @@ const AdminDashboard = () => {
       });
       setUploadProgress(0);
       setError(null);
-      Swal.fire({
-        title: "Thành công!",
-        text: "Thêm TV series thành công!",
-        icon: "success",
-        background: "#1f2937",
-        color: "#fff",
-        confirmButtonColor: "#facc15",
-      });
+      customSwal("Thành công!", "Thêm TV series thành công!", "success");
     } catch (err) {
       setError(
         "Failed to add TV series: " + (err.response?.data?.error || err.message)
@@ -411,14 +382,7 @@ const AdminDashboard = () => {
       setSeasonsList([]);
       setUploadProgress(0);
       setError(null);
-      Swal.fire({
-        title: "Thành công!",
-        text: "Thêm episode thành công!",
-        icon: "success",
-        background: "#1f2937",
-        color: "#fff",
-        confirmButtonColor: "#facc15",
-      });
+      customSwal("Thành công!", "Thêm episode thành công!", "success");
     } catch (err) {
       setError(
         "Failed to add episode: " + (err.response?.data?.error || err.message)
@@ -434,14 +398,7 @@ const AdminDashboard = () => {
         },
       });
       setMovies(movies.filter((movie) => movie.id !== movieId));
-      Swal.fire({
-        title: "Thành công!",
-        text: "Xóa phim thành công!",
-        icon: "success",
-        background: "#1f2937",
-        color: "#fff",
-        confirmButtonColor: "#facc15",
-      });
+      customSwal("Thành công!", "Xóa phim thành công!", "success");
     } catch (err) {
       setError(
         "Failed to delete movie: " + (err.response?.data?.error || err.message)
@@ -457,14 +414,7 @@ const AdminDashboard = () => {
         },
       });
       setTvSeries(tvSeries.filter((series) => series.id !== seriesId));
-      Swal.fire({
-        title: "Thành công!",
-        text: "Xóa TV series thành công!",
-        icon: "success",
-        background: "#1f2937",
-        color: "#fff",
-        confirmButtonColor: "#facc15",
-      });
+      customSwal("Thành công!", "Xóa TV series thành công!", "success");
     } catch (err) {
       setError(
         "Failed to delete TV series: " +
@@ -514,58 +464,55 @@ const AdminDashboard = () => {
     });
   };
 
- const handleUpdateMovie = async (e) => {
-  e.preventDefault();
-  if (!editMovie) return;
+  const handleUpdateMovie = async (e) => {
+    e.preventDefault();
+    if (!editMovie) return;
 
-  const formattedData = {
-    ...updatedMovie,
-    releaseDate: updatedMovie.releaseDate ? new Date(updatedMovie.releaseDate).toISOString() : null,
-    actors: updatedMovie.actors.map((actor) => ({
-      Id: actor.id || 0, // Sử dụng id (chữ thường) từ dữ liệu frontend
-      Name: actor.name || "", // Chuyển thành Name (viết hoa) để khớp với backend
-    })),
+    const formattedData = {
+      ...updatedMovie,
+      releaseDate: updatedMovie.releaseDate
+        ? new Date(updatedMovie.releaseDate).toISOString()
+        : null,
+      actors: updatedMovie.actors.map((actor) => ({
+        Id: actor.id || 0, // Sử dụng id (chữ thường) từ dữ liệu frontend
+        Name: actor.name || "", // Chuyển thành Name (viết hoa) để khớp với backend
+      })),
+    };
+
+    try {
+      await api.put(`/api/movies/${editMovie.id}`, formattedData, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        },
+      });
+      setMovies(
+        movies.map((movie) =>
+          movie.id === editMovie.id ? { ...movie, ...formattedData } : movie
+        )
+      );
+      setEditMovie(null);
+      setUpdatedMovie({
+        title: "",
+        overview: "",
+        genres: "",
+        status: "",
+        releaseDate: "",
+        studio: "",
+        director: "",
+        posterUrl: "",
+        backdropUrl: "",
+        videoUrl: "",
+        trailerUrl: "",
+        actors: [], // Đặt lại actors thành mảng rỗng
+      });
+      setError(null);
+      customSwal("Thành công!", "Cập nhật phim thành công!", "success");
+    } catch (err) {
+      setError(
+        "Failed to update movie: " + (err.response?.data?.error || err.message)
+      );
+    }
   };
-
-  try {
-    await api.put(`/api/movies/${editMovie.id}`, formattedData, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-      },
-    });
-    setMovies(
-      movies.map((movie) =>
-        movie.id === editMovie.id ? { ...movie, ...formattedData } : movie
-      )
-    );
-    setEditMovie(null);
-    setUpdatedMovie({
-      title: "",
-      overview: "",
-      genres: "",
-      status: "",
-      releaseDate: "",
-      studio: "",
-      director: "",
-      posterUrl: "",
-      backdropUrl: "",
-      videoUrl: "",
-      trailerUrl: "",
-      actors: [], // Đặt lại actors thành mảng rỗng
-    });
-    setError(null);
-    Swal.fire({
-      title: "Thành công!",
-      text: "Cập nhật phim thành công!",
-      icon: "success",
-      background: "#1f2937",
-      color: "#fff",
-      confirmButtonColor: "#facc15",
-    });
-  } catch (err) {
-    setError("Failed to update movie: " + (err.response?.data?.error || err.message));
-  }
-};
 
   const handleUpdateTvSeries = async (e) => {
     e.preventDefault();
@@ -615,14 +562,7 @@ const AdminDashboard = () => {
         actors: [],
       });
       setError(null);
-      Swal.fire({
-        title: "Thành công!",
-        text: "Cập nhật TV series thành công!",
-        icon: "success",
-        background: "#1f2937",
-        color: "#fff",
-        confirmButtonColor: "#facc15",
-      });
+      customSwal("Thành công!", "Cập nhật TV series thành công!", "success");
     } catch (err) {
       setError(
         "Failed to update TV series: " +
@@ -700,6 +640,8 @@ const AdminDashboard = () => {
             setEditTvSeries={setEditTvSeries}
           />
         )}
+        {activeTab === "manageActors" && <ActorTable />}
+        {activeTab === "manageGenres" && <GenreTable />}
       </div>
     </div>
   );

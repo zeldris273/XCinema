@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import BannerHome from "../components/BannerHome";
 import HorizontalScrollCard from "../components/HorizontalScrollCard";
 import useFetch from "../hooks/useFetch";
@@ -7,6 +7,10 @@ import TrendingCard from "../components/common/TrendingCard";
 const Home = () => {
   const { data: topRatedMovies } = useFetch("/api/movies/top-rated-by-votes");
   const { data: mostViewedTvSeries } = useFetch("/api/tvseries/most-viewed");
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location]);
 
   return (
     <div>

@@ -120,7 +120,6 @@ namespace backend.Controllers
                 {
                     Title = model.Title,
                     Overview = model.Overview,
-                    Genres = model.Genres,
                     Status = model.Status,
                     ReleaseDate = model.ReleaseDate,
                     Studio = model.Studio,
@@ -134,6 +133,22 @@ namespace backend.Controllers
 
                 _context.Movies.Add(movie);
                 await _context.SaveChangesAsync();
+
+                // Xử lý Genres
+                if (model.GenreIds != null && model.GenreIds.Any())
+                {
+                    foreach (var genreId in model.GenreIds)
+                    {
+                        if (await _context.Genres.AnyAsync(g => g.Id == genreId))
+                        {
+                            _context.MovieGenres.Add(new MovieGenre
+                            {
+                                MovieId = movie.Id,
+                                GenreId = genreId
+                            });
+                        }
+                    }
+                }
 
                 // Xử lý diễn viên
                 List<string> actors = string.IsNullOrEmpty(model.Actors)
@@ -176,7 +191,7 @@ namespace backend.Controllers
                 Id = m.Id,
                 Title = m.Title,
                 Overview = m.Overview,
-                Genres = m.Genres,
+                Genres = m.MovieGenres.Select(mg => mg.Genre.Name).ToList(),
                 Status = m.Status,
                 ReleaseDate = m.ReleaseDate,
                 Studio = m.Studio,
@@ -222,7 +237,6 @@ namespace backend.Controllers
                 Id = movie.Id,
                 Title = movie.Title,
                 Overview = movie.Overview,
-                Genres = movie.Genres,
                 Status = movie.Status,
                 Rating = (double?)movie.Rating,
                 NumberOfRatings = movie.NumberOfRatings,
@@ -282,7 +296,6 @@ namespace backend.Controllers
 
             movie.Title = updatedMovie.Title;
             movie.Overview = updatedMovie.Overview;
-            movie.Genres = updatedMovie.Genres;
             movie.Status = updatedMovie.Status;
             movie.ReleaseDate = updatedMovie.ReleaseDate;
             movie.Studio = updatedMovie.Studio;
@@ -291,6 +304,27 @@ namespace backend.Controllers
             movie.BackdropUrl = updatedMovie.BackdropUrl;
             movie.VideoUrl = updatedMovie.VideoUrl;
             movie.TrailerUrl = updatedMovie.TrailerUrl;
+
+            // Xóa genres cũ
+            var existingGenres = _context.MovieGenres.Where(mg => mg.MovieId == movie.Id);
+            _context.MovieGenres.RemoveRange(existingGenres);
+
+            // Thêm genres mới
+            if (updatedMovie.GenreIds != null && updatedMovie.GenreIds.Any())
+            {
+                foreach (var genreId in updatedMovie.GenreIds)
+                {
+                    if (await _context.Genres.AnyAsync(g => g.Id == genreId))
+                    {
+                        _context.MovieGenres.Add(new MovieGenre
+                        {
+                            MovieId = movie.Id,
+                            GenreId = genreId
+                        });
+                    }
+                }
+            }
+
 
             if (updatedMovie.Actors != null && updatedMovie.Actors.Any())
             {

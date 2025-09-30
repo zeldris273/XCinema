@@ -16,7 +16,6 @@ namespace backend.Models
 
         public string Overview { get; set; }
 
-        public string Genres { get; set; }
 
         [Required]
         public string Status { get; set; }
@@ -37,6 +36,9 @@ namespace backend.Models
         public string? TrailerUrl { get; set; }
 
         public NpgsqlTsVector? SearchVector { get; set; }
+
+        public List<TvSeriesGenre> TvSeriesGenres { get; set; } = new();
+
 
         public List<Season> Seasons { get; set; } = new List<Season>();
         public List<Comment> Comments { get; set; } = new List<Comment>();

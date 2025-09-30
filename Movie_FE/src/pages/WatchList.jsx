@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import api from "../api/api";
 import { useNavigate } from "react-router-dom";
-import Swal from "sweetalert2";
-import { Slug } from "../../utils/Slug";
+import { Slug } from "../utils/Slug";
+import customSwal from "../utils/customSwal";
 
 const Watchlist = () => {
   const [watchlist, setWatchlist] = useState([]);
@@ -12,18 +12,7 @@ const Watchlist = () => {
 
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, [location]);
-
-  const showAlert = (title, text, icon) => {
-    Swal.fire({
-      title,
-      text,
-      icon,
-      background: "#222222",
-      color: "#fff",
-      confirmButtonColor: "#ffcc00",
-    });
-  };
+  }, []);
 
   const fetchWatchlist = async () => {
     const token = localStorage.getItem("accessToken");
@@ -35,17 +24,14 @@ const Watchlist = () => {
 
     try {
       const response = await api.get("/api/watchlist", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
-      console.log("Watchlist response:", response.data);
       setWatchlist(response.data);
       setLoading(false);
     } catch (err) {
       console.error("Error fetching watchlist:", err.response || err);
       if (err.response?.status === 401) {
-        showAlert("", "Session expired. Please log in again.", "error");
+        customSwal("Lỗi", "Session expired. Please log in again.", "error");
         navigate("/auth");
       } else {
         setError(err.response?.data?.error || "Failed to load watch list.");
@@ -57,35 +43,34 @@ const Watchlist = () => {
   const handleRemoveFromWatchlist = async (mediaId, mediaType) => {
     const token = localStorage.getItem("accessToken");
     if (!token) {
-      showAlert("", "Please log in to remove from watch list.", "warning");
+      customSwal(
+        "Cảnh báo",
+        "Please log in to remove from watch list.",
+        "warning"
+      );
       navigate("/auth");
       return;
     }
 
     try {
       await api.delete("/api/watchlist/remove", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        data: {
-          MediaId: mediaId,
-          MediaType: mediaType,
-        },
+        headers: { Authorization: `Bearer ${token}` },
+        data: { MediaId: mediaId, MediaType: mediaType },
       });
       setWatchlist(
         watchlist.filter(
           (item) => !(item.mediaId === mediaId && item.mediaType === mediaType)
         )
       );
-      showAlert("", "Removed from Watch List!", "success");
+      customSwal("Thành công", "Removed from Watch List!", "success");
     } catch (err) {
       console.error("Error removing from watchlist:", err);
       if (err.response?.status === 401) {
-        showAlert("", "Session expired. Please log in again.", "error");
+        customSwal("Lỗi", "Session expired. Please log in again.", "error");
         navigate("/auth");
       } else {
-        showAlert(
-          "",
+        customSwal(
+          "Lỗi",
           err.response?.data?.error || "Failed to remove from watch list.",
           "error"
         );
@@ -98,7 +83,7 @@ const Watchlist = () => {
   }, []);
 
   const handleCardClick = (mediaId, mediaType, title) => {
-    const slug = createSlug(title);
+    const slug = Slug(title);
     const path =
       mediaType === "movie"
         ? `/movies/${mediaId}/${slug}`

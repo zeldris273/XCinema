@@ -45,7 +45,13 @@ namespace backend.Controllers
                             .Matches(EF.Functions.ToTsQuery("english", tsQueryString)));
                 }
                 if (!string.IsNullOrEmpty(genre))
-                    movies = movies.Where(m => m.Genres.ToLower().Contains(genre.ToLower()));
+                {
+                    movies = movies
+                        .Include(m => m.MovieGenres)
+                        .ThenInclude(mg => mg.Genre)
+                        .Where(m => m.MovieGenres.Any(mg => mg.Genre.Name.ToLower().Contains(genre.ToLower())));
+                }
+
                 if (year.HasValue)
                     movies = movies.Where(m => m.ReleaseDate.HasValue && m.ReleaseDate.Value.Year == year.Value);
                 if (minRating.HasValue)
@@ -76,7 +82,13 @@ namespace backend.Controllers
                             .Matches(EF.Functions.ToTsQuery("english", tsQueryString)));
                 }
                 if (!string.IsNullOrEmpty(genre))
-                    tv = tv.Where(t => t.Genres.ToLower().Contains(genre.ToLower()));
+                {
+                    tv = tv
+                        .Include(t => t.TvSeriesGenres)
+                        .ThenInclude(tg => tg.Genre)
+                        .Where(t => t.TvSeriesGenres.Any(tg => tg.Genre.Name.ToLower().Contains(genre.ToLower())));
+                }
+
                 if (year.HasValue)
                     tv = tv.Where(t => t.ReleaseDate.HasValue && t.ReleaseDate.Value.Year == year.Value);
                 if (minRating.HasValue)

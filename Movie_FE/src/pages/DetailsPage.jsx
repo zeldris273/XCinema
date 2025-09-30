@@ -7,11 +7,11 @@ import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
 import "react-circular-progressbar/dist/styles.css";
 import VideoTrailerFrame from "../components/Frame/VideoTrailerFrame";
 import api from "../api/api";
-import Swal from "sweetalert2";
 import { FaStar } from "react-icons/fa";
 import { FaUser } from "react-icons/fa";
 import { jwtDecode } from "jwt-decode";
-import { Slug } from "../../utils/Slug";
+import { Slug } from "../utils/Slug";
+import customSwal from "../utils/customSwal";
 
 const DetailsPage = () => {
   const { id, title: urlTitle } = useParams();
@@ -32,44 +32,20 @@ const DetailsPage = () => {
   const [isInWatchList, setIsInWatchList] = useState(false);
   const [userRating, setUserRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
-  const [isAdmin, setIsAdmin] = useState(false); // State cho Admin
-  const [isUser, setIsUser] = useState(false); // State cho user
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isUser, setIsUser] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [location]);
 
   useEffect(() => {
-    if (fetchedData) {
-      setData(fetchedData);
-    }
+    if (fetchedData) setData(fetchedData);
   }, [fetchedData]);
-
-  // useEffect(() => {
-  //   const checkWatchList = async () => {
-  //     const token = localStorage.getItem("accessToken");
-  //     if (!token) return;
-
-  //     try {
-  //       const response = await api.get("/api/watchlist");
-  //       const watchList = response.data;
-  //       const exists = watchList.some(
-  //         (item) =>
-  //           item.mediaId === parseInt(id) && item.mediaType === mediaType
-  //       );
-  //       setIsInWatchList(exists);
-  //     } catch (err) {
-  //       console.error("Error checking watchlist:", err);
-  //     }
-  //   };
-
-  //   checkWatchList();
-  // }, [id, mediaType]);
 
   useEffect(() => {
     const fetchEpisodes = async () => {
       if (mediaType !== "tv" || !id) return;
-
       try {
         const seasonsResponse = await api.get(`/api/tvseries/${id}/seasons`);
         const seasons = seasonsResponse.data;
@@ -88,11 +64,7 @@ const DetailsPage = () => {
         }
       } catch (err) {
         console.error("Error fetching episodes:", err);
-        setEpisodeError(
-          err.response?.status === 404
-            ? "Season not found or no episodes available."
-            : "Failed to fetch episodes."
-        );
+        setEpisodeError("Failed to fetch episodes.");
       }
     };
 
@@ -109,41 +81,23 @@ const DetailsPage = () => {
             "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
           ];
         setIsAdmin(role === "Admin");
-        setIsUser(role === "User"); // Kiểm tra role là "user"
+        setIsUser(role === "User");
 
-        // Redirect nếu không phải Admin hoặc user
         if (role !== "Admin" && role !== "User") {
-          Swal.fire({
-            title: "Cảnh báo!",
-            text: "Bạn không có quyền truy cập trang này!",
-            icon: "warning",
-            background: "#1f2937",
-            color: "#fff",
-            confirmButtonColor: "#facc15",
-          });
+          customSwal(
+            "Cảnh báo!",
+            "Bạn không có quyền truy cập trang này!",
+            "warning"
+          );
           navigate("/");
         }
       } catch (err) {
         console.error("Error decoding token:", err);
-        Swal.fire({
-          title: "Lỗi!",
-          text: "Token không hợp lệ!",
-          icon: "error",
-          background: "#1f2937",
-          color: "#fff",
-          confirmButtonColor: "#facc15",
-        });
+        customSwal("Lỗi!", "Token không hợp lệ!", "error");
         navigate("/auth");
       }
     } else {
-      Swal.fire({
-        title: "Lỗi!",
-        text: "Bạn chưa đăng nhập!",
-        icon: "error",
-        background: "#1f2937",
-        color: "#fff",
-        confirmButtonColor: "#facc15",
-      });
+      customSwal("Lỗi!", "Bạn chưa đăng nhập!", "error");
       navigate("/auth");
     }
   }, [navigate]);
@@ -151,14 +105,7 @@ const DetailsPage = () => {
   const handleAddToWatchList = async () => {
     const token = localStorage.getItem("accessToken");
     if (!token) {
-      Swal.fire({
-        title: "",
-        text: "Please log in to add to watch list.",
-        icon: "error",
-        background: "#222222",
-        color: "#fff",
-        confirmButtonColor: "#ffcc00",
-      });
+      customSwal("Lỗi", "Please log in to add to watch list.", "error");
       navigate("/auth");
       return;
     }
@@ -171,33 +118,20 @@ const DetailsPage = () => {
 
       if (response.status === 200) {
         setIsInWatchList(true);
-        Swal.fire({
-          title: "",
-          text: "Added to Watch List",
-          icon: "success",
-          background: "#222222",
-          color: "#fff",
-          confirmButtonColor: "#ffcc00",
-        });
+        customSwal("Thành công", "Added to Watch List", "success");
       }
     } catch (error) {
       console.error("Error adding to watch list:", error);
-      Swal.fire({
-        title: "",
-        text: error.response?.data?.error || "Failed to add to watch list.",
-        icon: "error",
-        background: "#222222",
-        color: "#fff",
-        confirmButtonColor: "#ffcc00",
-      });
+      customSwal(
+        "Lỗi",
+        error.response?.data?.error || "Failed to add to watch list.",
+        "error"
+      );
     }
   };
 
   const fetchMediaDetails = async () => {
-    if (!data?.title) {
-      console.error("Title is missing, cannot fetch media details");
-      return null;
-    }
+    if (!data?.title) return null;
     try {
       const slug = Slug(data.title);
       const response = await api.get(
@@ -213,14 +147,7 @@ const DetailsPage = () => {
   const handleRatingSubmit = async (rating) => {
     const token = localStorage.getItem("accessToken");
     if (!token) {
-      Swal.fire({
-        title: "",
-        text: "Please log in to rate this media.",
-        icon: "error",
-        background: "#222222",
-        color: "#fff",
-        confirmButtonColor: "#ffcc00",
-      });
+      customSwal("Lỗi", "Please log in to rate this media.", "error");
       navigate("/auth");
       return;
     }
@@ -233,14 +160,7 @@ const DetailsPage = () => {
       });
 
       if (response.status === 200) {
-        Swal.fire({
-          title: "",
-          text: "Thank you for your rating!",
-          icon: "success",
-          background: "#222222",
-          color: "#fff",
-          confirmButtonColor: "#ffcc00",
-        });
+        customSwal("Thành công", "Thank you for your rating!", "success");
 
         if (response.data.averageRating && response.data.numberOfRatings) {
           setData((prevData) => ({
@@ -251,34 +171,20 @@ const DetailsPage = () => {
         }
 
         const updatedData = await fetchMediaDetails();
-        if (updatedData) {
-          setData(updatedData);
-        }
+        if (updatedData) setData(updatedData);
       }
     } catch (error) {
-      console.error(
-        "Error submitting rating:",
-        error.response?.data || error.message
-      );
+      console.error("Error submitting rating:", error);
       let errorMessage = "Failed to submit rating.";
       if (error.response?.status === 401) {
         errorMessage = "Session expired. Please log in again.";
-        // Interceptor đã xử lý refresh, nhưng nếu thất bại, chuyển hướng
         if (!localStorage.getItem("accessToken")) {
           navigate("/auth");
         }
       } else if (error.response?.data?.error) {
         errorMessage = error.response.data.error;
       }
-
-      Swal.fire({
-        title: "",
-        text: errorMessage,
-        icon: "error",
-        background: "#222222",
-        color: "#fff",
-        confirmButtonColor: "#ffcc00",
-      });
+      customSwal("Lỗi", errorMessage, "error");
     }
   };
 
@@ -298,14 +204,11 @@ const DetailsPage = () => {
         const episodeNumber = firstEpisode.episode_number || 1;
         navigate(`/tvseries/${data.id}/${slug}/episode/${episodeNumber}/watch`);
       } else {
-        Swal.fire({
-          title: "",
-          text: episodeError || "No episodes available to play.",
-          icon: "error",
-          background: "#222222",
-          color: "#fff",
-          confirmButtonColor: "#ffcc00",
-        });
+        customSwal(
+          "Lỗi",
+          episodeError || "No episodes available to play.",
+          "error"
+        );
       }
     }
   };

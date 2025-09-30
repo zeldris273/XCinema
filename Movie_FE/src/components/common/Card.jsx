@@ -15,19 +15,24 @@ const Card = ({ data, trending, index, media_type }) => {
         .replace(/[^a-z0-9-]/g, "")
     : "untitled";
 
-
   return (
     <Link
       to={`/${mediaType}/${data.id}/${titlePlaceholder}`}
-      className="w-full min-w-[230px] max-w-[230px] h-80 overflow-hidden block rounded relative hover:scale-105 transition-all"
+      className="w-full min-w-[230px] max-w-[230px] h-80 overflow-hidden block rounded relative"
     >
-      {data?.posterUrl ? (
-        <img src={data.posterUrl} alt={data.title} />
-      ) : (
-        <div className="bg-neutral-800 h-full w-full flex justify-center items-center">
-          No Image Found
-        </div>
-      )}
+      <div className="w-full h-full transition-transform hover:scale-105">
+        {data?.posterUrl ? (
+          <img
+            src={data.posterUrl}
+            alt={data.title}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="bg-neutral-800 h-full w-full flex justify-center items-center">
+            No Image Found
+          </div>
+        )}
+      </div>
 
       <div className="absolute top-4">
         {trending && (

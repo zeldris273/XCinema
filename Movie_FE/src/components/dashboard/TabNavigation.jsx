@@ -44,14 +44,24 @@ const TabNavigation = ({ activeTab, setActiveTab }) => {
         Manage Movies
       </button>
       <button
-        onClick={() => setActiveTab("manageTvSeries")}
+        onClick={() => setActiveTab("manageActors")}
         className={`pb-2 px-4 ${
-          activeTab === "manageTvSeries"
+          activeTab === "manageActors"
             ? "border-b-2 border-yellow-500 text-yellow-500"
             : "text-gray-400"
         }`}
       >
-        Manage TV Series
+        Manage Actors
+      </button>
+      <button
+        onClick={() => setActiveTab("manageGenres")}
+        className={`pb-2 px-4 ${
+          activeTab === "manageGenres"
+            ? "border-b-2 border-yellow-500 text-yellow-500"
+            : "text-gray-400"
+        }`}
+      >
+        Manage Genres
       </button>
     </div>
   );
