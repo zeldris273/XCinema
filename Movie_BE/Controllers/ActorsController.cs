@@ -18,12 +18,23 @@ namespace backend.Controllers
 
         // ✅ GET: api/actors
         [HttpGet]
-        public async Task<IActionResult> GetAllActors()
+        public async Task<IActionResult> GetActors([FromQuery] string? search)
         {
-            var actors = await _context.Actors.ToListAsync();
+            var query = _context.Actors.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                search = search.Trim().ToLower();
+                query = query.Where(a => a.Name.ToLower().Contains(search));
+            }
+
+            var actors = await query
+                .OrderBy(a => a.Name)
+                .Take(20) // Giới hạn tối đa 20 kết quả (tối ưu performance)
+                .ToListAsync();
+
             return Ok(actors);
         }
-
         // ✅ GET: api/actors/{id}
         [HttpGet("{id}")]
         public async Task<IActionResult> GetActor(int id)

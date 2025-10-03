@@ -174,12 +174,18 @@ namespace backend.Controllers
                 string backdropFolder = $"tvseries/{model.Title}/backdrop";
                 string backdropPosterUrl = await _s3Service.UploadFileAsync(model.BackdropImageFile, backdropFolder);
 
+                var normalizedReleaseDate = model.ReleaseDate.HasValue
+                    ? (model.ReleaseDate.Value.Kind == DateTimeKind.Utc
+                        ? model.ReleaseDate.Value
+                        : DateTime.SpecifyKind(model.ReleaseDate.Value, DateTimeKind.Utc))
+                    : (DateTime?)null;
+
                 var series = new TvSeries
                 {
                     Title = model.Title,
                     Overview = model.Overview,
                     Status = model.Status,
-                    ReleaseDate = model.ReleaseDate,
+                    ReleaseDate = normalizedReleaseDate,
                     Studio = model.Studio,
                     Director = model.Director,
                     PosterUrl = posterPosterUrl,
@@ -496,7 +502,12 @@ namespace backend.Controllers
                 series.Title = model.Title ?? series.Title;
                 series.Overview = model.Overview ?? series.Overview;
                 series.Status = model.Status ?? series.Status;
-                series.ReleaseDate = model.ReleaseDate ?? series.ReleaseDate;
+                if (model.ReleaseDate.HasValue)
+                {
+                    series.ReleaseDate = model.ReleaseDate.Value.Kind == DateTimeKind.Utc
+                        ? model.ReleaseDate
+                        : DateTime.SpecifyKind(model.ReleaseDate.Value, DateTimeKind.Utc);
+                }
                 series.Studio = model.Studio ?? series.Studio;
                 series.Director = model.Director ?? series.Director;
                 series.PosterUrl = model.PosterUrl ?? series.PosterUrl;

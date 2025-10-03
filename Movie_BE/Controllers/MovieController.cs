@@ -116,12 +116,18 @@ namespace backend.Controllers
                 imageUrls.Add(backdropUrl);
                 imageUrls.Add(posterUrl);
 
+                var normalizedMovieReleaseDate = model.ReleaseDate.HasValue
+                    ? (model.ReleaseDate.Value.Kind == DateTimeKind.Utc
+                        ? model.ReleaseDate.Value
+                        : DateTime.SpecifyKind(model.ReleaseDate.Value, DateTimeKind.Utc))
+                    : (DateTime?)null;
+
                 var movie = new Movie
                 {
                     Title = model.Title,
                     Overview = model.Overview,
                     Status = model.Status,
-                    ReleaseDate = model.ReleaseDate,
+                    ReleaseDate = normalizedMovieReleaseDate,
                     Studio = model.Studio,
                     Director = model.Director,
                     PosterUrl = posterUrl,
@@ -297,7 +303,12 @@ namespace backend.Controllers
             movie.Title = updatedMovie.Title;
             movie.Overview = updatedMovie.Overview;
             movie.Status = updatedMovie.Status;
-            movie.ReleaseDate = updatedMovie.ReleaseDate;
+            if (updatedMovie.ReleaseDate.HasValue)
+            {
+                movie.ReleaseDate = updatedMovie.ReleaseDate.Value.Kind == DateTimeKind.Utc
+                    ? updatedMovie.ReleaseDate
+                    : DateTime.SpecifyKind(updatedMovie.ReleaseDate.Value, DateTimeKind.Utc);
+            }
             movie.Studio = updatedMovie.Studio;
             movie.Director = updatedMovie.Director;
             movie.PosterUrl = updatedMovie.PosterUrl;
@@ -359,14 +370,57 @@ namespace backend.Controllers
 
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin")]
-        public IActionResult DeleteMovie(int id)
+        public async Task<IActionResult> DeleteMovie(int id)
         {
-            var movie = _context.Movies.Find(id);
-            if (movie == null) return NotFound();
+            try
+            {
+                var movie = await _context.Movies
+                    .Include(m => m.MovieActors)
+                    .Include(m => m.MovieGenres)
+                    .Include(m => m.Comments)
+                    .FirstOrDefaultAsync(m => m.Id == id);
 
-            _context.Movies.Remove(movie);
-            _context.SaveChanges();
-            return NoContent();
+                if (movie == null) return NotFound();
+
+                // Remove dependent entities to satisfy FK constraints
+                if (movie.MovieActors != null && movie.MovieActors.Count > 0)
+                {
+                    _context.MovieActors.RemoveRange(movie.MovieActors);
+                }
+
+                if (movie.MovieGenres != null && movie.MovieGenres.Count > 0)
+                {
+                    _context.MovieGenres.RemoveRange(movie.MovieGenres);
+                }
+
+                if (movie.Comments != null && movie.Comments.Count > 0)
+                {
+                    _context.Comments.RemoveRange(movie.Comments);
+                }
+
+                // Remove other dependents by query if they exist in the model
+                var ratings = _context.Ratings.Where(r => r.MediaType == "movie" && r.MediaId == id);
+                if (await ratings.AnyAsync())
+                {
+                    _context.Ratings.RemoveRange(ratings);
+                }
+
+
+
+                var watchListItems = _context.WatchList.Where(w => w.MediaType == "movie" && w.MediaId == id);
+                if (await watchListItems.AnyAsync())
+                {
+                    _context.WatchList.RemoveRange(watchListItems);
+                }
+
+                _context.Movies.Remove(movie);
+                await _context.SaveChangesAsync();
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "Delete failed", details = ex.Message });
+            }
         }
 
         [HttpGet("top-rated-by-votes")]

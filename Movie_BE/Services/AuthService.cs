@@ -103,7 +103,7 @@ namespace backend.Services
                 issuer: _config["Jwt:Issuer"],
                 audience: _config["Jwt:Audience"],
                 claims: claims,
-                expires: DateTime.UtcNow.AddMinutes(1),
+                expires: DateTime.UtcNow.AddHours(1),
                 signingCredentials: creds
             );
 
@@ -239,8 +239,8 @@ namespace backend.Services
             var result = await _userManager.ResetPasswordAsync(user, token, newPassword);
             return result.Succeeded;
         }
-        
-         public async Task<CustomUser> HandleExternalLogin(string provider, ExternalLoginInfo info)
+
+        public async Task<CustomUser> HandleExternalLogin(string provider, ExternalLoginInfo info)
         {
             if (info == null)
                 return null;
@@ -291,7 +291,7 @@ namespace backend.Services
 
             user.DisplayName = updateProfileDto.DisplayName;
             user.Gender = updateProfileDto.Gender;
-            
+
             if (!string.IsNullOrEmpty(avatarUrl))
             {
                 user.AvatarUrl = avatarUrl;

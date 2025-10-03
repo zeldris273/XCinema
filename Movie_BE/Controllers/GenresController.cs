@@ -14,25 +14,26 @@ public class GenresController : ControllerBase
         _context = context;
     }
 
-    // GET: api/genres
+    // ✅ GET: api/genres?search=keyword
     [HttpGet]
-    public async Task<IActionResult> GetGenres()
+    public async Task<IActionResult> GetGenres([FromQuery] string? search)
     {
-        var genres = await _context.Genres.ToListAsync();
+        var query = _context.Genres.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            search = search.Trim().ToLower();
+            query = query.Where(g => g.Name.ToLower().Contains(search));
+        }
+
+        var genres = await query
+            .OrderBy(g => g.Name)
+            .Take(20)
+            .ToListAsync();
+
         return Ok(genres);
     }
 
-    // POST: api/genres
-    [HttpPost]
-    public async Task<IActionResult> CreateGenre([FromBody] Genre genre)
-    {
-        if (string.IsNullOrWhiteSpace(genre.Name))
-            return BadRequest("Tên thể loại không được để trống");
-
-        _context.Genres.Add(genre);
-        await _context.SaveChangesAsync();
-        return Ok(genre);
-    }
 
     // PUT: api/genres/{id}
     [HttpPut("{id}")]

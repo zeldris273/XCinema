@@ -207,20 +207,10 @@ using (var scope = app.Services.CreateScope())
         Console.WriteLine("Không tìm thấy user với email zeldris.273@gmail.com");
     }
 }
+app.UseCors("AllowFrontend");
 
 // Middleware pipeline
 app.UseRouting();
-
-// Đảm bảo CORS được gọi trước Authentication và Authorization
-app.UseCors("AllowFrontend");
-
-// Log response headers
-app.Use(async (context, next) =>
-{
-    Console.WriteLine($"Request: {context.Request.Method} {context.Request.Path}");
-    await next();
-    Console.WriteLine($"Response Headers: {string.Join(", ", context.Response.Headers.Select(h => $"{h.Key}: {h.Value}"))}");
-});
 
 app.UseAuthentication();
 app.UseAuthorization();

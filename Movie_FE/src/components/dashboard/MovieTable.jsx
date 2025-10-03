@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from "react";
+import AsyncSelect from "react-select/async";
+import selectStyles from "../../styles/SelectStyles";
+import api from "../../api/api";
 
 const MovieTable = ({
   movies,
@@ -11,24 +13,22 @@ const MovieTable = ({
   formatDateForInput,
   setEditMovie,
 }) => {
-  // State tạm thời để lưu chuỗi người dùng nhập vào input actors
-  const [actorInput, setActorInput] = useState("");
+  // Load Actors
+  const loadActorOptions = async (inputValue) => {
+    const res = await api.get(`/api/actors?search=${inputValue || ""}`);
+    return res.data.map((actor) => ({
+      value: actor.id,
+      label: actor.name,
+    }));
+  };
 
-  // Khi editMovie thay đổi, cập nhật actorInput từ updatedMovie.actors
-  useEffect(() => {
-    if (editMovie) {
-      setActorInput(updatedMovie.actors.map((actor) => actor.name || "").join(", "));
-    }
-  }, [editMovie, updatedMovie.actors]);
-
-  // Hàm đồng bộ actorInput với updatedMovie.actors (gọi khi mất focus hoặc submit)
-  const syncActors = () => {
-    const names = actorInput.split(",").map((name) => name.trim()).filter((name) => name);
-    const newActors = names.map((name) => {
-      const existingActor = updatedMovie.actors.find((a) => (a.name || "").toLowerCase() === name.toLowerCase());
-      return existingActor || { name }; // Sử dụng name thay vì Name
-    });
-    setUpdatedMovie({ ...updatedMovie, actors: newActors });
+  // Load Genres
+  const loadGenreOptions = async (inputValue) => {
+    const res = await api.get(`/api/genres?search=${inputValue || ""}`);
+    return res.data.map((genre) => ({
+      value: genre.id,
+      label: genre.name,
+    }));
   };
 
   return (
@@ -49,7 +49,9 @@ const MovieTable = ({
               <tr key={movie.id} className="border-t border-gray-700">
                 <td className="px-4 py-2">{movie.title}</td>
                 <td className="px-4 py-2">{movie.status}</td>
-                <td className="px-4 py-2">{formatDateForInput(movie.releaseDate)}</td>
+                <td className="px-4 py-2">
+                  {formatDateForInput(movie.releaseDate)}
+                </td>
                 <td className="px-4 py-2">
                   <button
                     onClick={() => handleEditMovie(movie)}
@@ -72,52 +74,108 @@ const MovieTable = ({
 
       {editMovie && (
         <div className="mt-6">
-          <h3 className="text-xl font-semibold mb-4">Edit Movie: {editMovie.title}</h3>
-          <form onSubmit={(e) => { syncActors(); handleUpdateMovie(e); }} className="space-y-4">
+          <h3 className="text-xl font-semibold mb-4">
+            Edit Movie: {editMovie.title}
+          </h3>
+          <form onSubmit={handleUpdateMovie} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Title</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">
+                Title
+              </label>
               <input
                 type="text"
                 value={updatedMovie.title}
-                onChange={(e) => setUpdatedMovie({ ...updatedMovie, title: e.target.value })}
+                onChange={(e) =>
+                  setUpdatedMovie({ ...updatedMovie, title: e.target.value })
+                }
                 className="w-full p-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:border-yellow-500"
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Overview</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">
+                Overview
+              </label>
               <textarea
                 value={updatedMovie.overview}
-                onChange={(e) => setUpdatedMovie({ ...updatedMovie, overview: e.target.value })}
+                onChange={(e) =>
+                  setUpdatedMovie({ ...updatedMovie, overview: e.target.value })
+                }
                 className="w-full p-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:border-yellow-500"
                 rows="3"
               />
             </div>
+
+            {/* Genres */}
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Genres</label>
-              <input
-                type="text"
-                value={updatedMovie.genres}
-                onChange={(e) => setUpdatedMovie({ ...updatedMovie, genres: e.target.value })}
-                className="w-full p-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:border-yellow-500"
+              <label className="block text-sm font-medium text-gray-400 mb-1">
+                Genres
+              </label>
+              <AsyncSelect
+                isMulti
+                cacheOptions
+                defaultOptions
+                loadOptions={loadGenreOptions}
+                value={
+                  Array.isArray(updatedMovie.genres)
+                    ? updatedMovie.genres
+                        .filter((g) => g && (g.id !== undefined || g.name))
+                        .map((g) => ({ value: g.id ?? 0, label: g.name ?? "" }))
+                    : []
+                }
+                onChange={(selected) =>
+                  setUpdatedMovie({
+                    ...updatedMovie,
+                    genres: selected.map((s) => ({
+                      id: s.value,
+                      name: s.label,
+                    })),
+                  })
+                }
+                placeholder="Chọn thể loại..."
+                styles={selectStyles}
               />
             </div>
+
+            {/* Actors */}
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Actors (comma-separated names)</label>
-              <input
-                type="text"
-                value={actorInput}
-                onChange={(e) => setActorInput(e.target.value)}
-                onBlur={syncActors} // Đồng bộ khi input mất focus
-                className="w-full p-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:border-yellow-500"
-                placeholder="e.g., Actor 1, Actor 2"
+              <label className="block text-sm font-medium text-gray-400 mb-1">
+                Actors
+              </label>
+              <AsyncSelect
+                isMulti
+                cacheOptions
+                defaultOptions
+                loadOptions={loadActorOptions}
+                value={
+                  updatedMovie.actors?.map((a) => ({
+                    value: a.id,
+                    label: a.name,
+                  })) || []
+                }
+                onChange={(selected) =>
+                  setUpdatedMovie({
+                    ...updatedMovie,
+                    actors: selected.map((s) => ({
+                      id: s.value,
+                      name: s.label,
+                    })),
+                  })
+                }
+                placeholder="Chọn diễn viên..."
+                styles={selectStyles}
               />
             </div>
+
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Status</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">
+                Status
+              </label>
               <select
                 value={updatedMovie.status}
-                onChange={(e) => setUpdatedMovie({ ...updatedMovie, status: e.target.value })}
+                onChange={(e) =>
+                  setUpdatedMovie({ ...updatedMovie, status: e.target.value })
+                }
                 className="w-full p-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:border-yellow-500"
                 required
               >
@@ -127,65 +185,105 @@ const MovieTable = ({
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Release Date</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">
+                Release Date
+              </label>
               <input
                 type="date"
                 value={updatedMovie.releaseDate}
-                onChange={(e) => setUpdatedMovie({ ...updatedMovie, releaseDate: e.target.value })}
+                onChange={(e) =>
+                  setUpdatedMovie({
+                    ...updatedMovie,
+                    releaseDate: e.target.value,
+                  })
+                }
                 className="w-full p-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:border-yellow-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Studio</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">
+                Studio
+              </label>
               <input
                 type="text"
                 value={updatedMovie.studio}
-                onChange={(e) => setUpdatedMovie({ ...updatedMovie, studio: e.target.value })}
+                onChange={(e) =>
+                  setUpdatedMovie({ ...updatedMovie, studio: e.target.value })
+                }
                 className="w-full p-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:border-yellow-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Director</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">
+                Director
+              </label>
               <input
                 type="text"
                 value={updatedMovie.director}
-                onChange={(e) => setUpdatedMovie({ ...updatedMovie, director: e.target.value })}
+                onChange={(e) =>
+                  setUpdatedMovie({ ...updatedMovie, director: e.target.value })
+                }
                 className="w-full p-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:border-yellow-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Poster URL</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">
+                Poster URL
+              </label>
               <input
                 type="text"
                 value={updatedMovie.posterUrl}
-                onChange={(e) => setUpdatedMovie({ ...updatedMovie, posterUrl: e.target.value })}
+                onChange={(e) =>
+                  setUpdatedMovie({
+                    ...updatedMovie,
+                    posterUrl: e.target.value,
+                  })
+                }
                 className="w-full p-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:border-yellow-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Backdrop URL</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">
+                Backdrop URL
+              </label>
               <input
                 type="text"
                 value={updatedMovie.backdropUrl}
-                onChange={(e) => setUpdatedMovie({ ...updatedMovie, backdropUrl: e.target.value })}
+                onChange={(e) =>
+                  setUpdatedMovie({
+                    ...updatedMovie,
+                    backdropUrl: e.target.value,
+                  })
+                }
                 className="w-full p-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:border-yellow-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Video URL</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">
+                Video URL
+              </label>
               <input
                 type="text"
                 value={updatedMovie.videoUrl}
-                onChange={(e) => setUpdatedMovie({ ...updatedMovie, videoUrl: e.target.value })}
+                onChange={(e) =>
+                  setUpdatedMovie({ ...updatedMovie, videoUrl: e.target.value })
+                }
                 className="w-full p-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:border-yellow-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Trailer URL</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">
+                Trailer URL
+              </label>
               <input
                 type="text"
                 value={updatedMovie.trailerUrl}
-                onChange={(e) => setUpdatedMovie({ ...updatedMovie, trailerUrl: e.target.value })}
+                onChange={(e) =>
+                  setUpdatedMovie({
+                    ...updatedMovie,
+                    trailerUrl: e.target.value,
+                  })
+                }
                 className="w-full p-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:border-yellow-500"
               />
             </div>
@@ -196,6 +294,7 @@ const MovieTable = ({
               Update Movie
             </button>
             <button
+              type="button"
               onClick={() => setEditMovie(null)}
               className="ml-2 px-4 py-2 bg-gray-500 rounded-lg hover:bg-gray-400"
             >

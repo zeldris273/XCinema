@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from "react";
+import AsyncSelect from "react-select/async";
+import selectStyles from "../../styles/SelectStyles";
+import api from "../../api/api";
 
 const TvSeriesTable = ({
   tvSeries,
@@ -11,24 +13,22 @@ const TvSeriesTable = ({
   formatDateForInput,
   setEditTvSeries,
 }) => {
-  // State tạm thời để lưu chuỗi người dùng nhập vào input actors
-  const [actorInput, setActorInput] = useState("");
+  // Load Actors
+  const loadActorOptions = async (inputValue) => {
+    const res = await api.get(`/api/actors?search=${inputValue || ""}`);
+    return res.data.map((actor) => ({
+      value: actor.id,
+      label: actor.name,
+    }));
+  };
 
-  // Khi editTvSeries thay đổi, cập nhật actorInput từ updatedTvSeries.actors
-  useEffect(() => {
-    if (editTvSeries) {
-      setActorInput(updatedTvSeries.actors.map((actor) => actor.name || "").join(", "));
-    }
-  }, [editTvSeries, updatedTvSeries.actors]);
-
-  // Hàm đồng bộ actorInput với updatedTvSeries.actors (gọi khi mất focus hoặc submit)
-  const syncActors = () => {
-    const names = actorInput.split(",").map((name) => name.trim()).filter((name) => name);
-    const newActors = names.map((name) => {
-      const existingActor = updatedTvSeries.actors.find((a) => (a.name || "").toLowerCase() === name.toLowerCase());
-      return existingActor || { name }; // Giữ id nếu tồn tại, nếu không tạo mới với name
-    });
-    setUpdatedTvSeries({ ...updatedTvSeries, actors: newActors });
+  // Load Genres
+  const loadGenreOptions = async (inputValue) => {
+    const res = await api.get(`/api/genres?search=${inputValue || ""}`);
+    return res.data.map((genre) => ({
+      value: genre.id,
+      label: genre.name,
+    }));
   };
 
   return (
@@ -49,7 +49,9 @@ const TvSeriesTable = ({
               <tr key={series.id} className="border-t border-gray-700">
                 <td className="px-4 py-2">{series.title}</td>
                 <td className="px-4 py-2">{series.status}</td>
-                <td className="px-4 py-2">{formatDateForInput(series.releaseDate)}</td>
+                <td className="px-4 py-2">
+                  {formatDateForInput(series.releaseDate)}
+                </td>
                 <td className="px-4 py-2">
                   <button
                     onClick={() => handleEditTvSeries(series)}
@@ -72,52 +74,117 @@ const TvSeriesTable = ({
 
       {editTvSeries && (
         <div className="mt-6">
-          <h3 className="text-xl font-semibold mb-4">Edit TV Series: {editTvSeries.title}</h3>
-          <form onSubmit={(e) => { syncActors(); handleUpdateTvSeries(e); }} className="space-y-4">
+          <h3 className="text-xl font-semibold mb-4">
+            Edit TV Series: {editTvSeries.title}
+          </h3>
+          <form onSubmit={handleUpdateTvSeries} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Title</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">
+                Title
+              </label>
               <input
                 type="text"
                 value={updatedTvSeries.title}
-                onChange={(e) => setUpdatedTvSeries({ ...updatedTvSeries, title: e.target.value })}
+                onChange={(e) =>
+                  setUpdatedTvSeries({
+                    ...updatedTvSeries,
+                    title: e.target.value,
+                  })
+                }
                 className="w-full p-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:border-yellow-500"
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Overview</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">
+                Overview
+              </label>
               <textarea
                 value={updatedTvSeries.overview}
-                onChange={(e) => setUpdatedTvSeries({ ...updatedTvSeries, overview: e.target.value })}
+                onChange={(e) =>
+                  setUpdatedTvSeries({
+                    ...updatedTvSeries,
+                    overview: e.target.value,
+                  })
+                }
                 className="w-full p-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:border-yellow-500"
                 rows="3"
               />
             </div>
+
+            {/* Genres */}
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Genres</label>
-              <input
-                type="text"
-                value={updatedTvSeries.genres}
-                onChange={(e) => setUpdatedTvSeries({ ...updatedTvSeries, genres: e.target.value })}
-                className="w-full p-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:border-yellow-500"
+              <label className="block text-sm font-medium text-gray-400 mb-1">
+                Genres
+              </label>
+              <AsyncSelect
+                isMulti
+                cacheOptions
+                defaultOptions
+                loadOptions={loadGenreOptions}
+                value={
+                  Array.isArray(updatedTvSeries.genres)
+                    ? updatedTvSeries.genres
+                        .filter((g) => g && (g.id !== undefined || g.name))
+                        .map((g) => ({ value: g.id ?? 0, label: g.name ?? "" }))
+                    : []
+                }
+                onChange={(selected) =>
+                  setUpdatedTvSeries({
+                    ...updatedTvSeries,
+                    genres: selected.map((s) => ({
+                      id: s.value,
+                      name: s.label,
+                    })),
+                  })
+                }
+                placeholder="Chọn thể loại..."
+                styles={selectStyles}
               />
             </div>
+
+            {/* Actors */}
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Actors (comma-separated names)</label>
-              <input
-                type="text"
-                value={actorInput}
-                onChange={(e) => setActorInput(e.target.value)}
-                onBlur={syncActors} // Đồng bộ khi input mất focus
-                className="w-full p-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:border-yellow-500"
-                placeholder="e.g., Actor 1, Actor 2"
+              <label className="block text-sm font-medium text-gray-400 mb-1">
+                Actors
+              </label>
+              <AsyncSelect
+                isMulti
+                cacheOptions
+                defaultOptions
+                loadOptions={loadActorOptions}
+                value={
+                  updatedTvSeries.actors?.map((a) => ({
+                    value: a.id,
+                    label: a.name,
+                  })) || []
+                }
+                onChange={(selected) =>
+                  setUpdatedTvSeries({
+                    ...updatedTvSeries,
+                    actors: selected.map((s) => ({
+                      id: s.value,
+                      name: s.label,
+                    })),
+                  })
+                }
+                placeholder="Chọn diễn viên..."
+                styles={selectStyles}
               />
             </div>
+
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Status</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">
+                Status
+              </label>
               <select
                 value={updatedTvSeries.status}
-                onChange={(e) => setUpdatedTvSeries({ ...updatedTvSeries, status: e.target.value })}
+                onChange={(e) =>
+                  setUpdatedTvSeries({
+                    ...updatedTvSeries,
+                    status: e.target.value,
+                  })
+                }
                 className="w-full p-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:border-yellow-500"
                 required
               >
@@ -127,56 +194,98 @@ const TvSeriesTable = ({
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Release Date</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">
+                Release Date
+              </label>
               <input
                 type="date"
                 value={updatedTvSeries.releaseDate}
-                onChange={(e) => setUpdatedTvSeries({ ...updatedTvSeries, releaseDate: e.target.value })}
+                onChange={(e) =>
+                  setUpdatedTvSeries({
+                    ...updatedTvSeries,
+                    releaseDate: e.target.value,
+                  })
+                }
                 className="w-full p-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:border-yellow-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Studio</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">
+                Studio
+              </label>
               <input
                 type="text"
                 value={updatedTvSeries.studio}
-                onChange={(e) => setUpdatedTvSeries({ ...updatedTvSeries, studio: e.target.value })}
+                onChange={(e) =>
+                  setUpdatedTvSeries({
+                    ...updatedTvSeries,
+                    studio: e.target.value,
+                  })
+                }
                 className="w-full p-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:border-yellow-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Director</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">
+                Director
+              </label>
               <input
                 type="text"
                 value={updatedTvSeries.director}
-                onChange={(e) => setUpdatedTvSeries({ ...updatedTvSeries, director: e.target.value })}
+                onChange={(e) =>
+                  setUpdatedTvSeries({
+                    ...updatedTvSeries,
+                    director: e.target.value,
+                  })
+                }
                 className="w-full p-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:border-yellow-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Poster URL</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">
+                Poster URL
+              </label>
               <input
                 type="text"
                 value={updatedTvSeries.posterUrl}
-                onChange={(e) => setUpdatedTvSeries({ ...updatedTvSeries, posterUrl: e.target.value })}
+                onChange={(e) =>
+                  setUpdatedTvSeries({
+                    ...updatedTvSeries,
+                    posterUrl: e.target.value,
+                  })
+                }
                 className="w-full p-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:border-yellow-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Backdrop URL</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">
+                Backdrop URL
+              </label>
               <input
                 type="text"
                 value={updatedTvSeries.backdropUrl}
-                onChange={(e) => setUpdatedTvSeries({ ...updatedTvSeries, backdropUrl: e.target.value })}
+                onChange={(e) =>
+                  setUpdatedTvSeries({
+                    ...updatedTvSeries,
+                    backdropUrl: e.target.value,
+                  })
+                }
                 className="w-full p-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:border-yellow-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Trailer URL</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">
+                Trailer URL
+              </label>
               <input
                 type="text"
                 value={updatedTvSeries.trailerUrl}
-                onChange={(e) => setUpdatedTvSeries({ ...updatedTvSeries, trailerUrl: e.target.value })}
+                onChange={(e) =>
+                  setUpdatedTvSeries({
+                    ...updatedTvSeries,
+                    trailerUrl: e.target.value,
+                  })
+                }
                 className="w-full p-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:border-yellow-500"
               />
             </div>
@@ -187,6 +296,7 @@ const TvSeriesTable = ({
               Update TV Series
             </button>
             <button
+              type="button"
               onClick={() => setEditTvSeries(null)}
               className="ml-2 px-4 py-2 bg-gray-500 rounded-lg hover:bg-gray-400"
             >

@@ -29,13 +29,13 @@ const AdminDashboard = () => {
   const [newMovie, setNewMovie] = useState({
     title: "",
     overview: "",
-    genres: "",
+    genres: [],
     status: "",
     releaseDate: "",
     type: "single_movie",
     studio: "",
     director: "",
-    actors: "",
+    actors: [],
     videoFile: null,
     backdropFile: null,
     posterFile: null,
@@ -51,7 +51,7 @@ const AdminDashboard = () => {
     director: "",
     posterImageFile: null,
     backdropImageFile: null,
-    actors: "",
+    actors: [],
   });
 
   const [newEpisode, setNewEpisode] = useState({
@@ -64,7 +64,7 @@ const AdminDashboard = () => {
   const [updatedMovie, setUpdatedMovie] = useState({
     title: "",
     overview: "",
-    genres: "",
+    genres: [],
     status: "",
     releaseDate: "",
     studio: "",
@@ -184,6 +184,7 @@ const AdminDashboard = () => {
     e.preventDefault();
     const { title, status, type, videoFile, backdropFile, posterFile } =
       newMovie;
+
     if (
       !title ||
       !status ||
@@ -200,37 +201,61 @@ const AdminDashboard = () => {
 
     const token = localStorage.getItem("accessToken");
     const uploadData = new FormData();
+
     uploadData.append("Title", newMovie.title);
     uploadData.append("Overview", newMovie.overview || "");
-    uploadData.append("Genres", newMovie.genres);
+
+    // ✅ FIX: Gửi GenreIds đúng format (array of integers)
+    if (Array.isArray(newMovie.genres) && newMovie.genres.length > 0) {
+      newMovie.genres.forEach((genre) => {
+        uploadData.append("GenreIds", genre.value); // Gửi từng ID
+      });
+    }
+
     uploadData.append("Status", newMovie.status);
+
     if (newMovie.releaseDate) {
       const releaseDate = new Date(newMovie.releaseDate);
       uploadData.append("ReleaseDate", releaseDate.toISOString());
     }
+
     uploadData.append("Type", newMovie.type);
     uploadData.append("Studio", newMovie.studio || "");
     uploadData.append("Director", newMovie.director || "");
-    uploadData.append("Actors", newMovie.actors || "");
+
+    // ✅ FIX: Gửi Actors đúng format (comma-separated string)
+    if (Array.isArray(newMovie.actors) && newMovie.actors.length > 0) {
+      const actorNames = newMovie.actors.map((actor) => actor.label).join(", ");
+      uploadData.append("Actors", actorNames);
+    } else {
+      uploadData.append("Actors", "");
+    }
+
     uploadData.append("VideoFile", newMovie.videoFile);
     uploadData.append("BackdropFile", newMovie.backdropFile);
     uploadData.append("PosterFile", newMovie.posterFile);
 
     try {
+      console.log("Starting upload..."); // Debug log
+
       const response = await api.post("/api/movies/create", uploadData, {
         headers: {
           "Content-Type": "multipart/form-data",
           Authorization: `Bearer ${token}`,
         },
+        timeout: 300000, // 5 phút
         onUploadProgress: (progressEvent) => {
           if (progressEvent.total > 0) {
             const percent = Math.round(
               (progressEvent.loaded * 100) / progressEvent.total
             );
             setUploadProgress(percent);
+            console.log(`Upload progress: ${percent}%`);
           }
         },
       });
+
+      console.log("✅ Upload successful:", response.data); // Debug log
 
       setMovies([
         ...movies,
@@ -263,19 +288,33 @@ const AdminDashboard = () => {
         backdropFile: null,
         posterFile: null,
       });
+
       setUploadProgress(0);
       setError(null);
       customSwal("Thành công!", "Thêm phim thành công!", "success");
     } catch (err) {
-      setError(
-        "Failed to add movie: " + (err.response?.data?.error || err.message)
-      );
+      console.error("❌ Upload failed:", err);
+      console.error("Error response:", err.response?.data);
+      console.error("Error status:", err.response?.status);
+
+      setUploadProgress(0); // Reset progress khi lỗi
+
+      let errorMessage = "Failed to add movie: ";
+      if (err.code === "ECONNABORTED") {
+        errorMessage += "Upload timeout - file quá lớn hoặc mạng chậm";
+      } else {
+        errorMessage += err.response?.data?.error || err.message;
+      }
+
+      setError(errorMessage);
+      customSwal("Lỗi!", errorMessage, "error");
     }
   };
 
   const handleAddTvSeries = async (e) => {
     e.preventDefault();
     const { title, status, posterImageFile, backdropImageFile } = newTvSeries;
+
     if (!title || !status || !posterImageFile || !backdropImageFile) {
       setError(
         "Vui lòng điền đầy đủ thông tin: Title, Status, Poster Image, và Backdrop Image!"
@@ -285,35 +324,62 @@ const AdminDashboard = () => {
 
     const token = localStorage.getItem("accessToken");
     const uploadData = new FormData();
+
     uploadData.append("Title", newTvSeries.title);
     uploadData.append("Overview", newTvSeries.overview || "");
-    newTvSeries.genres.forEach((genre) => uploadData.append("Genres", genre));
+
+    // ✅ FIX: Gửi GenreIds đúng format (array of integers)
+    if (Array.isArray(newTvSeries.genres) && newTvSeries.genres.length > 0) {
+      newTvSeries.genres.forEach((genre) => {
+        uploadData.append("GenreIds", genre.value); // Gửi từng ID
+      });
+    }
+
     uploadData.append("Status", newTvSeries.status);
-    if (newTvSeries.releaseDate)
+
+    if (newTvSeries.releaseDate) {
       uploadData.append("ReleaseDate", newTvSeries.releaseDate);
+    }
+
     uploadData.append("Studio", newTvSeries.studio || "");
     uploadData.append("Director", newTvSeries.director || "");
     uploadData.append("PosterImageFile", newTvSeries.posterImageFile);
     uploadData.append("BackdropImageFile", newTvSeries.backdropImageFile);
-    uploadData.append("Actors", newTvSeries.actors || "");
+
+    // ✅ FIX: Gửi Actors đúng format (comma-separated string)
+    if (Array.isArray(newTvSeries.actors) && newTvSeries.actors.length > 0) {
+      const actorNames = newTvSeries.actors
+        .map((actor) => actor.label)
+        .join(", ");
+      uploadData.append("Actors", actorNames);
+    } else {
+      uploadData.append("Actors", "");
+    }
 
     try {
+      console.log("Starting TV series upload..."); // Debug log
+
       const response = await api.post("/api/tvseries/create", uploadData, {
         headers: {
           "Content-Type": "multipart/form-data",
           Authorization: `Bearer ${token}`,
         },
+        timeout: 300000, // 5 phút
         onUploadProgress: (progressEvent) => {
           if (progressEvent.total > 0) {
             const percent = Math.round(
               (progressEvent.loaded * 100) / progressEvent.total
             );
             setUploadProgress(percent);
+            console.log(`Upload progress: ${percent}%`);
           }
         },
       });
 
+      console.log("✅ TV series upload successful:", response.data); // Debug log
+
       setTvSeries([...tvSeries, response.data]);
+
       setNewTvSeries({
         title: "",
         overview: "",
@@ -324,15 +390,28 @@ const AdminDashboard = () => {
         director: "",
         posterImageFile: null,
         backdropImageFile: null,
-        actors: "",
+        actors: [],
       });
+
       setUploadProgress(0);
       setError(null);
       customSwal("Thành công!", "Thêm TV series thành công!", "success");
     } catch (err) {
-      setError(
-        "Failed to add TV series: " + (err.response?.data?.error || err.message)
-      );
+      console.error("❌ TV series upload failed:", err);
+      console.error("Error response:", err.response?.data);
+      console.error("Error status:", err.response?.status);
+
+      setUploadProgress(0); // Reset progress khi lỗi
+
+      let errorMessage = "Failed to add TV series: ";
+      if (err.code === "ECONNABORTED") {
+        errorMessage += "Upload timeout - file quá lớn hoặc mạng chậm";
+      } else {
+        errorMessage += err.response?.data?.error || err.message;
+      }
+
+      setError(errorMessage);
+      customSwal("Lỗi!", errorMessage, "error");
     }
   };
 
@@ -425,16 +504,38 @@ const AdminDashboard = () => {
 
   const handleEditMovie = (movie) => {
     setEditMovie(movie);
+    const normalizeGenres = (genres) => {
+      if (Array.isArray(genres)) {
+        if (genres.length === 0) return [];
+        const first = genres[0];
+        if (typeof first === "string") {
+          return genres
+            .map((name) => (name || "").trim())
+            .filter(Boolean)
+            .map((name) => ({ id: 0, name }));
+        }
+        if (typeof first === "object" && first !== null) {
+          return genres.map((g) => ({
+            id: g.id ?? g.Id ?? 0,
+            name: (g.name ?? g.Name ?? "").toString(),
+          }));
+        }
+        return [];
+      }
+      if (typeof genres === "string") {
+        return genres
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean)
+          .map((name) => ({ id: 0, name }));
+      }
+      return [];
+    };
     setUpdatedMovie({
       id: movie.id,
       title: movie.title || "",
       overview: movie.overview || "",
-      genres:
-        typeof movie.genres === "string"
-          ? movie.genres
-          : Array.isArray(movie.genres)
-          ? movie.genres.join(", ")
-          : "",
+      genres: normalizeGenres(movie.genres),
       status: movie.status || "",
       releaseDate: formatDateForInput(movie.releaseDate),
       studio: movie.studio || "",
@@ -449,10 +550,37 @@ const AdminDashboard = () => {
 
   const handleEditTvSeries = (series) => {
     setEditTvSeries(series);
+    const normalizeGenres = (genres) => {
+      if (Array.isArray(genres)) {
+        if (genres.length === 0) return [];
+        const first = genres[0];
+        if (typeof first === "string") {
+          return genres
+            .map((name) => (name || "").trim())
+            .filter(Boolean)
+            .map((name) => ({ id: 0, name }));
+        }
+        if (typeof first === "object" && first !== null) {
+          return genres.map((g) => ({
+            id: g.id ?? g.Id ?? 0,
+            name: (g.name ?? g.Name ?? "").toString(),
+          }));
+        }
+        return [];
+      }
+      if (typeof genres === "string") {
+        return genres
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean)
+          .map((name) => ({ id: 0, name }));
+      }
+      return [];
+    };
     setUpdatedTvSeries({
       title: series.title || "",
       overview: series.overview || "",
-      genres: series.genres || "",
+      genres: normalizeGenres(series.genres),
       status: series.status || "",
       releaseDate: formatDateForInput(series.releaseDate),
       studio: series.studio || "",
@@ -473,9 +601,15 @@ const AdminDashboard = () => {
       releaseDate: updatedMovie.releaseDate
         ? new Date(updatedMovie.releaseDate).toISOString()
         : null,
+      // ✅ chuẩn hóa genres
+      genres: updatedMovie.genres.map((genre) => ({
+        Id: genre.id || 0,
+        Name: genre.name || "",
+      })),
+      // ✅ chuẩn hóa actors
       actors: updatedMovie.actors.map((actor) => ({
-        Id: actor.id || 0, // Sử dụng id (chữ thường) từ dữ liệu frontend
-        Name: actor.name || "", // Chuyển thành Name (viết hoa) để khớp với backend
+        Id: actor.id || 0,
+        Name: actor.name || "",
       })),
     };
 
@@ -485,16 +619,18 @@ const AdminDashboard = () => {
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
       });
+
       setMovies(
         movies.map((movie) =>
           movie.id === editMovie.id ? { ...movie, ...formattedData } : movie
         )
       );
+
       setEditMovie(null);
       setUpdatedMovie({
         title: "",
         overview: "",
-        genres: "",
+        genres: [], // ✅ reset thành mảng thay vì string
         status: "",
         releaseDate: "",
         studio: "",
@@ -503,8 +639,9 @@ const AdminDashboard = () => {
         backdropUrl: "",
         videoUrl: "",
         trailerUrl: "",
-        actors: [], // Đặt lại actors thành mảng rỗng
+        actors: [],
       });
+
       setError(null);
       customSwal("Thành công!", "Cập nhật phim thành công!", "success");
     } catch (err) {
