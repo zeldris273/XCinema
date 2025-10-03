@@ -13,6 +13,7 @@ import TvSeriesTable from "../components/dashboard/TvSeriesTable";
 import UploadProgress from "../components/dashboard/UploadProgress";
 import GenreTable from "../components/dashboard/GenreTable";
 import ActorTable from "../components/dashboard/ActorTable";
+import AddSeasonForm from "../components/dashboard/SeasonManager";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -52,6 +53,11 @@ const AdminDashboard = () => {
     posterImageFile: null,
     backdropImageFile: null,
     actors: [],
+  });
+
+  const [newSeason, setNewSeason] = useState({
+    tvSeriesId: "",
+    seasonNumber: "",
   });
 
   const [newEpisode, setNewEpisode] = useState({
@@ -308,6 +314,28 @@ const AdminDashboard = () => {
 
       setError(errorMessage);
       customSwal("Lỗi!", errorMessage, "error");
+    }
+  };
+
+  const handleAddSeason = async (e) => {
+    e.preventDefault();
+    if (!newSeason.tvSeriesId || !newSeason.seasonNumber) {
+      setError("Vui lòng chọn TV series và nhập Season Number!");
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("accessToken");
+      await api.post("/api/tvseries/seasons", newSeason, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setNewSeason({ tvSeriesId: "", seasonNumber: "" });
+      customSwal("Thành công!", "Thêm Season thành công!", "success");
+    } catch (err) {
+      setError(
+        "Failed to add season: " + (err.response?.data?.error || err.message)
+      );
     }
   };
 
@@ -597,15 +625,24 @@ const AdminDashboard = () => {
     if (!editMovie) return;
 
     const formattedData = {
-      ...updatedMovie,
+      title: updatedMovie.title,
+      overview: updatedMovie.overview,
+      status: updatedMovie.status,
       releaseDate: updatedMovie.releaseDate
         ? new Date(updatedMovie.releaseDate).toISOString()
         : null,
-      // ✅ chuẩn hóa genres
-      genres: updatedMovie.genres.map((genre) => ({
-        Id: genre.id || 0,
-        Name: genre.name || "",
-      })),
+      studio: updatedMovie.studio,
+      director: updatedMovie.director,
+      posterUrl: updatedMovie.posterUrl,
+      backdropUrl: updatedMovie.backdropUrl,
+      videoUrl: updatedMovie.videoUrl,
+      trailerUrl: updatedMovie.trailerUrl,
+      // ✅ chỉ gửi GenreIds
+      GenreIds: Array.isArray(updatedMovie.genres)
+        ? updatedMovie.genres
+            .map((g) => g?.id || g?.Id)
+            .filter((id) => Number.isInteger(id) && id > 0)
+        : [],
       // ✅ chuẩn hóa actors
       actors: updatedMovie.actors.map((actor) => ({
         Id: actor.id || 0,
@@ -656,10 +693,23 @@ const AdminDashboard = () => {
     if (!editTvSeries) return;
 
     const formattedData = {
-      ...updatedTvSeries,
+      title: updatedTvSeries.title,
+      overview: updatedTvSeries.overview,
+      status: updatedTvSeries.status,
       releaseDate: updatedTvSeries.releaseDate
         ? new Date(updatedTvSeries.releaseDate).toISOString()
         : null,
+      studio: updatedTvSeries.studio,
+      director: updatedTvSeries.director,
+      posterUrl: updatedTvSeries.posterUrl,
+      backdropUrl: updatedTvSeries.backdropUrl,
+      trailerUrl: updatedTvSeries.trailerUrl,
+      // ✅ chỉ gửi GenreIds
+      GenreIds: Array.isArray(updatedTvSeries.genres)
+        ? updatedTvSeries.genres
+            .map((g) => g?.id || g?.Id)
+            .filter((id) => Number.isInteger(id) && id > 0)
+        : [],
       actors: updatedTvSeries.actors.map((actor) => ({
         Id: actor.id || 0,
         Name: actor.name || actor,
@@ -777,6 +827,15 @@ const AdminDashboard = () => {
             setEditTvSeries={setEditTvSeries}
           />
         )}
+        {activeTab === "managerSeasons" && (
+          <AddSeasonForm
+            newSeason={newSeason}
+            setNewSeason={setNewSeason}
+            handleAddSeason={handleAddSeason}
+            tvSeries={tvSeries}
+          />
+        )}
+
         {activeTab === "manageActors" && <ActorTable />}
         {activeTab === "manageGenres" && <GenreTable />}
       </div>

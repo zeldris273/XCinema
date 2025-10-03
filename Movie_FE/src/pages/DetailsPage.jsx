@@ -385,18 +385,15 @@ const DetailsPage = () => {
             <Divider />
 
             <div className="flex gap-2">
-              {data?.genres && typeof data.genres === "string" ? (
-                data.genres
-                  .replace(/\s*,\s*/g, ",")
-                  .split(",")
-                  .map((genre, index) => (
-                    <span
-                      key={"Genre" + index}
-                      className="bg-gray-700/60 text-white text-xs font-bold px-2 py-1 rounded-md"
-                    >
-                      {genre.trim()}
-                    </span>
-                  ))
+              {Array.isArray(data?.genres) && data.genres.length > 0 ? (
+                data.genres.map((genre, index) => (
+                  <span
+                    key={"Genre" + index}
+                    className="bg-gray-700/60 text-white text-xs font-bold px-2 py-1 rounded-md"
+                  >
+                    {genre}
+                  </span>
+                ))
               ) : (
                 <span className="text-gray-400">No genres available</span>
               )}

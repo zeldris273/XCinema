@@ -207,10 +207,11 @@ using (var scope = app.Services.CreateScope())
         Console.WriteLine("Không tìm thấy user với email zeldris.273@gmail.com");
     }
 }
-app.UseCors("AllowFrontend");
 
 // Middleware pipeline
 app.UseRouting();
+// CORS must be placed after UseRouting and before auth
+app.UseCors("AllowFrontend");
 
 app.UseAuthentication();
 app.UseAuthorization();

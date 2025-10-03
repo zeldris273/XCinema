@@ -35,6 +35,36 @@ public class GenresController : ControllerBase
     }
 
 
+    // POST: api/genres
+    [HttpPost]
+    public async Task<IActionResult> CreateGenre([FromBody] Genre newGenre)
+    {
+        if (newGenre == null || string.IsNullOrWhiteSpace(newGenre.Name))
+        {
+            return BadRequest(new { error = "Name is required" });
+        }
+
+        var normalizedName = newGenre.Name.Trim();
+        var exists = await _context.Genres
+            .AnyAsync(g => g.Name.ToLower() == normalizedName.ToLower());
+        if (exists)
+        {
+            return BadRequest(new { error = "Genre already exists" });
+        }
+
+        var genre = new Genre
+        {
+            Name = normalizedName,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _context.Genres.Add(genre);
+        await _context.SaveChangesAsync();
+
+        return Ok(genre);
+    }
+
+
     // PUT: api/genres/{id}
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateGenre(int id, [FromBody] Genre updatedGenre)

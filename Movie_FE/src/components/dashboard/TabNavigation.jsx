@@ -54,6 +54,18 @@ const TabNavigation = ({ activeTab, setActiveTab }) => {
       >
         Manage TvSeries
       </button>
+
+      <button
+        onClick={() => setActiveTab("managerSeasons")}
+        className={`pb-2 px-4 ${
+          activeTab === "managerSeasons"
+            ? "border-b-2 border-yellow-500 text-yellow-500"
+            : "text-gray-400"
+        }`}
+      >
+        Add Season
+      </button>
+
       <button
         onClick={() => setActiveTab("manageActors")}
         className={`pb-2 px-4 ${

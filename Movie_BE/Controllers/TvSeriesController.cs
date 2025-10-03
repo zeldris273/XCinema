@@ -66,8 +66,10 @@ namespace backend.Controllers
         public IActionResult GetTvSeries(int id, string title)
         {
             var series = _context.TvSeries
-                .Include(s => s.TvSeriesActors) // Tải TvSeriesActors
-                .ThenInclude(ta => ta.Actor)    // Tải Actor liên quan
+                .Include(s => s.TvSeriesGenres)
+                    .ThenInclude(tg => tg.Genre)
+                .Include(s => s.TvSeriesActors)
+                    .ThenInclude(ta => ta.Actor)
                 .FirstOrDefault(s => s.Id == id);
 
             if (series == null) return NotFound(new { error = "TV series not found" });
@@ -102,6 +104,8 @@ namespace backend.Controllers
                 PosterUrl = series.PosterUrl,
                 BackdropUrl = series.BackdropUrl,
                 TrailerUrl = series.TrailerUrl,
+                Genres = series.TvSeriesGenres.Select(tg => tg.Genre.Name).ToList(),
+                GenreIds = series.TvSeriesGenres.Select(tg => tg.GenreId).ToList(),
                 Actors = series.TvSeriesActors.Select(ta => new ActorDTO
                 {
                     Id = ta.Actor.Id,
@@ -164,15 +168,14 @@ namespace backend.Controllers
 
                 var validStatuses = new[] { "Ongoing", "Completed", "Canceled" };
                 if (!validStatuses.Contains(model.Status))
-                {
                     return BadRequest(new { error = "Invalid Status. Must be 'Ongoing', 'Completed', or 'Canceled'." });
-                }
 
+                // Upload files
                 string posterFolder = $"tvseries/{model.Title}/poster";
-                string posterPosterUrl = await _s3Service.UploadFileAsync(model.PosterImageFile, posterFolder);
+                string posterUrl = await _s3Service.UploadFileAsync(model.PosterImageFile, posterFolder);
 
                 string backdropFolder = $"tvseries/{model.Title}/backdrop";
-                string backdropPosterUrl = await _s3Service.UploadFileAsync(model.BackdropImageFile, backdropFolder);
+                string backdropUrl = await _s3Service.UploadFileAsync(model.BackdropImageFile, backdropFolder);
 
                 var normalizedReleaseDate = model.ReleaseDate.HasValue
                     ? (model.ReleaseDate.Value.Kind == DateTimeKind.Utc
@@ -180,6 +183,7 @@ namespace backend.Controllers
                         : DateTime.SpecifyKind(model.ReleaseDate.Value, DateTimeKind.Utc))
                     : (DateTime?)null;
 
+                // ✅ Tạo series thôi, KHÔNG tạo Season
                 var series = new TvSeries
                 {
                     Title = model.Title,
@@ -188,13 +192,13 @@ namespace backend.Controllers
                     ReleaseDate = normalizedReleaseDate,
                     Studio = model.Studio,
                     Director = model.Director,
-                    PosterUrl = posterPosterUrl,
-                    BackdropUrl = backdropPosterUrl
+                    PosterUrl = posterUrl,
+                    BackdropUrl = backdropUrl
                 };
                 _context.TvSeries.Add(series);
                 await _context.SaveChangesAsync();
 
-                // Gán genres
+                // Genres
                 if (model.GenreIds != null && model.GenreIds.Any())
                 {
                     foreach (var genreId in model.GenreIds)
@@ -209,35 +213,19 @@ namespace backend.Controllers
                         }
                     }
                 }
-                await _context.SaveChangesAsync();
 
-                var season = new Season
+                // Actors
+                if (!string.IsNullOrEmpty(model.Actors))
                 {
-                    TvSeriesId = series.Id,
-                    SeasonNumber = 1
-                };
-                _context.Seasons.Add(season);
-                await _context.SaveChangesAsync();
-
-                // Xử lý diễn viên
-                List<string> actors = string.IsNullOrEmpty(model.Actors)
-                    ? new List<string>()
-                    : model.Actors.Split(',').Select(actor => actor.Trim()).ToList();
-
-                foreach (var actorName in actors)
-                {
-                    if (!string.IsNullOrWhiteSpace(actorName))
+                    var actors = model.Actors.Split(',').Select(a => a.Trim()).ToList();
+                    foreach (var actorName in actors)
                     {
-                        var actor = await _context.Actors
-                            .FirstOrDefaultAsync(a => a.Name.ToLower() == actorName.ToLower());
+                        if (string.IsNullOrWhiteSpace(actorName)) continue;
 
+                        var actor = await _context.Actors.FirstOrDefaultAsync(a => a.Name.ToLower() == actorName.ToLower());
                         if (actor == null)
                         {
-                            actor = new Actor
-                            {
-                                Name = actorName,
-                                CreatedAt = DateTime.UtcNow
-                            };
+                            actor = new Actor { Name = actorName, CreatedAt = DateTime.UtcNow };
                             _context.Actors.Add(actor);
                             await _context.SaveChangesAsync();
                         }
@@ -246,7 +234,7 @@ namespace backend.Controllers
                         {
                             TvSeriesId = series.Id,
                             ActorId = actor.Id,
-                            CharacterName = "" // Có thể thêm trường để nhập tên nhân vật
+                            CharacterName = ""
                         };
                         _context.Set<TvSeriesActor>().Add(tvSeriesActor);
                     }
@@ -254,7 +242,7 @@ namespace backend.Controllers
 
                 await _context.SaveChangesAsync();
 
-                var response = new TvSeriesResponseDTO
+                return Ok(new TvSeriesResponseDTO
                 {
                     Id = series.Id,
                     Title = series.Title,
@@ -264,20 +252,15 @@ namespace backend.Controllers
                     Studio = series.Studio,
                     Director = series.Director,
                     PosterUrl = series.PosterUrl,
-                    BackdropUrl = series.BackdropUrl,
-                    Actors = series.TvSeriesActors.Select(ta => new ActorDTO
-                    {
-                        Id = ta.Actor.Id,
-                        Name = ta.Actor.Name
-                    }).ToList()
-                };
-                return Ok(response);
+                    BackdropUrl = series.BackdropUrl
+                });
             }
             catch (Exception ex)
             {
                 return StatusCode(500, new { error = "Upload failed", details = ex.Message });
             }
         }
+
 
         [HttpPost("seasons")]
         [Authorize(Roles = "Admin")]
@@ -320,6 +303,36 @@ namespace backend.Controllers
                 return StatusCode(500, new { error = "Creation failed", details = ex.Message });
             }
         }
+
+        [HttpDelete("seasons/{seasonId}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> DeleteSeason(int seasonId)
+        {
+            try
+            {
+                var season = await _context.Seasons
+                    .Include(s => s.Episodes)
+                    .FirstOrDefaultAsync(s => s.Id == seasonId);
+
+                if (season == null)
+                    return NotFound(new { error = "Season not found" });
+
+                // Xoá tất cả episodes của season
+                _context.Episodes.RemoveRange(season.Episodes);
+
+                // Xoá season
+                _context.Seasons.Remove(season);
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = $"Season {season.SeasonNumber} deleted successfully" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "Delete failed", details = ex.Message });
+            }
+        }
+
 
         [HttpPost("episodes/upload")]
         [Authorize(Roles = "Admin")]

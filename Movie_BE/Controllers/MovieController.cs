@@ -189,8 +189,10 @@ namespace backend.Controllers
         public IActionResult GetAllMovies()
         {
             var movies = _context.Movies
-                .Include(m => m.MovieActors) // Tải MovieActors
-                .ThenInclude(ma => ma.Actor) // Tải Actor liên quan
+                .Include(m => m.MovieGenres)
+                .ThenInclude(mg => mg.Genre)
+                .Include(m => m.MovieActors)
+                .ThenInclude(ma => ma.Actor)
                 .ToList();
             var result = movies.Select(m => new MovieResponseDTO
             {
@@ -221,8 +223,10 @@ namespace backend.Controllers
         public IActionResult GetMovie(int id, string title)
         {
             var movie = _context.Movies
-                .Include(m => m.MovieActors) // Tải MovieActors
-                .ThenInclude(ma => ma.Actor) // Tải Actor liên quan
+                .Include(m => m.MovieGenres)
+                .ThenInclude(mg => mg.Genre)
+                .Include(m => m.MovieActors)
+                .ThenInclude(ma => ma.Actor)
                 .FirstOrDefault(m => m.Id == id);
 
             if (movie == null) return NotFound(new { error = "Movie not found" });
@@ -253,6 +257,7 @@ namespace backend.Controllers
                 BackdropUrl = movie.BackdropUrl,
                 VideoUrl = movie.VideoUrl,
                 TrailerUrl = movie.TrailerUrl,
+                Genres = movie.MovieGenres.Select(mg => mg.Genre.Name).ToList(),
                 Actors = movie.MovieActors.Select(ma => new ActorDTO
                 {
                     Id = ma.Actor.Id,
