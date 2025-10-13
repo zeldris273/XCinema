@@ -302,6 +302,7 @@ namespace backend.Controllers
             var movie = await _context.Movies
                 .Include(m => m.MovieActors)
                 .ThenInclude(ma => ma.Actor)
+                .Include(m => m.MovieGenres)
                 .FirstOrDefaultAsync(m => m.Id == id);
             if (movie == null) return NotFound();
 
@@ -321,24 +322,26 @@ namespace backend.Controllers
             movie.VideoUrl = updatedMovie.VideoUrl;
             movie.TrailerUrl = updatedMovie.TrailerUrl;
 
-            // Xóa genres cũ
-            var existingGenres = _context.MovieGenres.Where(mg => mg.MovieId == movie.Id);
-            _context.MovieGenres.RemoveRange(existingGenres);
+            // Xử lý genres - chỉ thêm/xóa khi cần thiết
+            var currentGenreIds = movie.MovieGenres.Select(mg => mg.GenreId).ToList();
+            var newGenreIds = updatedMovie.GenreIds ?? new List<int>();
+
+            // Xóa genres không còn trong danh sách mới
+            var genresToRemove = movie.MovieGenres.Where(mg => !newGenreIds.Contains(mg.GenreId)).ToList();
+            foreach (var genreToRemove in genresToRemove)
+            {
+                _context.MovieGenres.Remove(genreToRemove);
+            }
 
             // Thêm genres mới
-            if (updatedMovie.GenreIds != null && updatedMovie.GenreIds.Any())
+            var genresToAdd = newGenreIds.Where(gId => !currentGenreIds.Contains(gId) && _context.Genres.Any(g => g.Id == gId)).ToList();
+            foreach (var genreId in genresToAdd)
             {
-                foreach (var genreId in updatedMovie.GenreIds)
+                _context.MovieGenres.Add(new MovieGenre
                 {
-                    if (await _context.Genres.AnyAsync(g => g.Id == genreId))
-                    {
-                        _context.MovieGenres.Add(new MovieGenre
-                        {
-                            MovieId = movie.Id,
-                            GenreId = genreId
-                        });
-                    }
-                }
+                    MovieId = movie.Id,
+                    GenreId = genreId
+                });
             }
 
 

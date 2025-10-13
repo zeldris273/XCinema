@@ -6,7 +6,8 @@ using backend.DTOs; // Import namespace của RatingDTO
 using System;
 using System.Linq;
 using Movie_BE.Models;
-using Movie_BE.DTOs; // Import namespace của Rating
+using Movie_BE.DTOs;
+using System.Text; // Import namespace của Rating
 
 namespace backend.Controllers
 {
@@ -108,6 +109,31 @@ namespace backend.Controllers
             {
                 return StatusCode(500, new { error = "An error occurred while submitting the rating.", details = ex.Message });
             }
+        }
+
+        [HttpGet("export-csv")]
+        public IActionResult ExportRatingsCsv()
+        {
+            var ratings = _context.Ratings
+                .Select(r => new
+                {
+                    r.UserId,
+                    r.MediaId,
+                    r.MediaType,
+                    r.RatingValue,
+                    r.CreatedAt
+                }).ToList();
+
+            var csv = new StringBuilder();
+            csv.AppendLine("UserId,MediaId,MediaType,RatingValue,CreatedAt");
+
+            foreach (var r in ratings)
+            {
+                csv.AppendLine($"{r.UserId},{r.MediaId},{r.MediaType},{r.RatingValue},{r.CreatedAt:O}");
+            }
+
+            var bytes = Encoding.UTF8.GetBytes(csv.ToString());
+            return File(bytes, "text/csv", "ratings.csv");
         }
     }
 }

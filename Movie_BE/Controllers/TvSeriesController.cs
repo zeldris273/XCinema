@@ -13,6 +13,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Text.RegularExpressions;
 using Movie_BE.DTOs;
 using Movie_BE.Models;
+using Npgsql;
 
 namespace backend.Controllers
 {
@@ -83,8 +84,6 @@ namespace backend.Controllers
             expectedSlug = Regex.Replace(expectedSlug, "[^a-z0-9-]", "");
             expectedSlug = Regex.Replace(expectedSlug, "-+", "-");
 
-            Console.WriteLine($"Title: {title}");
-            Console.WriteLine($"Expected slug: {expectedSlug}");
             if (title != expectedSlug)
             {
                 return NotFound(new { error = "Invalid Film" });
@@ -196,7 +195,17 @@ namespace backend.Controllers
                     BackdropUrl = backdropUrl
                 };
                 _context.TvSeries.Add(series);
-                await _context.SaveChangesAsync();
+
+                try
+                {
+                    await _context.SaveChangesAsync();
+                }
+                catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException pgEx && pgEx.SqlState == "23505")
+                {
+                    // Handle duplicate key error - sequence is out of sync
+                    await FixTvSeriesSequenceAsync();
+                    await _context.SaveChangesAsync();
+                }
 
                 // Genres
                 if (model.GenreIds != null && model.GenreIds.Any())
@@ -506,6 +515,7 @@ namespace backend.Controllers
             {
                 var series = await _context.TvSeries
                     .Include(s => s.TvSeriesActors)
+                    .Include(s => s.TvSeriesGenres)
                     .FirstOrDefaultAsync(s => s.Id == id);
 
                 if (series == null)
@@ -527,24 +537,26 @@ namespace backend.Controllers
                 series.BackdropUrl = model.BackdropUrl ?? series.BackdropUrl;
                 series.TrailerUrl = model.TrailerUrl ?? series.TrailerUrl;
 
-                // Xóa genres cũ
-                var oldGenres = _context.TvSeriesGenres.Where(tg => tg.TvSeriesId == series.Id);
-                _context.TvSeriesGenres.RemoveRange(oldGenres);
+                // Xử lý genres - chỉ thêm/xóa khi cần thiết
+                var currentGenreIds = series.TvSeriesGenres.Select(tg => tg.GenreId).ToList();
+                var newGenreIds = model.GenreIds ?? new List<int>();
+
+                // Xóa genres không còn trong danh sách mới
+                var genresToRemove = series.TvSeriesGenres.Where(tg => !newGenreIds.Contains(tg.GenreId)).ToList();
+                foreach (var genreToRemove in genresToRemove)
+                {
+                    _context.TvSeriesGenres.Remove(genreToRemove);
+                }
 
                 // Thêm genres mới
-                if (model.GenreIds != null && model.GenreIds.Any())
+                var genresToAdd = newGenreIds.Where(gId => !currentGenreIds.Contains(gId) && _context.Genres.Any(g => g.Id == gId)).ToList();
+                foreach (var genreId in genresToAdd)
                 {
-                    foreach (var genreId in model.GenreIds)
+                    _context.TvSeriesGenres.Add(new TvSeriesGenre
                     {
-                        if (await _context.Genres.AnyAsync(g => g.Id == genreId))
-                        {
-                            _context.TvSeriesGenres.Add(new TvSeriesGenre
-                            {
-                                TvSeriesId = series.Id,
-                                GenreId = genreId
-                            });
-                        }
-                    }
+                        TvSeriesId = series.Id,
+                        GenreId = genreId
+                    });
                 }
 
 
@@ -679,6 +691,39 @@ namespace backend.Controllers
                 .ToListAsync();
 
             return Ok(mostViewedTvSeries);
+        }
+
+        [HttpPost("fix-sequence")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> FixTvSeriesSequence()
+        {
+            try
+            {
+                await FixTvSeriesSequenceAsync();
+                return Ok(new { message = "TvSeries sequence has been fixed successfully" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "Failed to fix sequence", details = ex.Message });
+            }
+        }
+
+        private async Task FixTvSeriesSequenceAsync()
+        {
+            try
+            {
+                // Get the current max ID from the TvSeries table
+                var maxId = await _context.TvSeries.MaxAsync(t => (int?)t.Id) ?? 0;
+
+                // Reset the sequence to start from the next available ID
+                var sql = $"SELECT setval('\"TvSeries_Id_seq\"', {maxId + 1}, false)";
+                await _context.Database.ExecuteSqlRawAsync(sql);
+            }
+            catch (Exception ex)
+            {
+                // Log the error but don't throw - this is a recovery mechanism
+                Console.WriteLine($"Failed to fix TvSeries sequence: {ex.Message}");
+            }
         }
     }
 }

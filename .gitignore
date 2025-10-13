@@ -1,0 +1,33 @@
+# Python cache & environment
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/.Python
+**/env/
+**/venv/
+**/.venv/
+
+# Virtual environment files
+*.env
+*.venv
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Node modules (for FE)
+FE/node_modules/
+FE/dist/
+
+# Python build files
+build/
+dist/
+*.egg-info/
+
+# Logs
+*.log
+
+# VSCode / IDE settings
+.vscode/
+.idea/
