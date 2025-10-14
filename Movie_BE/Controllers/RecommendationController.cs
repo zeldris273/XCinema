@@ -81,24 +81,69 @@ namespace backend.Controllers
             }
         }
 
-        // ✅ Gợi ý phim tương tự với phim đang xem
         [HttpGet("similar/{movieId}")]
         public async Task<IActionResult> GetSimilarMovies(int movieId, [FromQuery] int top_n = 10)
         {
             try
             {
-                string url = $"http://localhost:8001/similar/{movieId}?top_n={top_n}";
-                var response = await _httpClient.GetAsync(url);
-                if (!response.IsSuccessStatusCode)
-                    return StatusCode((int)response.StatusCode, await response.Content.ReadAsStringAsync());
+                var response = await _httpClient.GetFromJsonAsync<SimilarResponseDto>(
+                    $"http://localhost:8001/similar/{movieId}?top_n={top_n}");
 
-                var json = await response.Content.ReadAsStringAsync();
-                return Content(json, "application/json");
+                if (response == null || response.Recommendations.Count == 0)
+                    return NotFound("Không có phim tương tự nào.");
+
+                var result = new List<object>();
+
+                foreach (var item in response.Recommendations)
+                {
+                    int id = item.Id;
+                    var movie = _context.Movies.FirstOrDefault(m => m.Id == id);
+                    var tv = _context.TvSeries.FirstOrDefault(t => t.Id == id);
+
+                    if (movie != null)
+                    {
+                        result.Add(new
+                        {
+                            id = movie.Id,
+                            title = movie.Title,
+                            poster = movie.PosterUrl,
+                            backdrop = movie.BackdropUrl,
+                            overview = movie.Overview,
+                            releaseDate = movie.ReleaseDate,
+                            studio = movie.Studio,
+                            status = movie.Status,
+                            rating = movie.Rating,
+                            similarity = item.Similarity,
+                            type = "movie"
+                        });
+                    }
+                    else if (tv != null)
+                    {
+                        result.Add(new
+                        {
+                            id = tv.Id,
+                            title = tv.Title,
+                            poster = tv.PosterUrl,
+                            backdrop = tv.BackdropUrl,
+                            overview = tv.Overview,
+                            releaseDate = tv.ReleaseDate,
+                            studio = tv.Studio,
+                            status = tv.Status,
+                            rating = tv.Rating,
+                            similarity = item.Similarity,
+                            type = "tvseries"
+                        });
+                    }
+                }
+
+                return Ok(result);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { error = "Không thể kết nối đến FastAPI service", details = ex.Message });
+                return StatusCode(500, new { error = "Không thể lấy phim tương tự.", details = ex.Message });
             }
         }
+
+
     }
 }

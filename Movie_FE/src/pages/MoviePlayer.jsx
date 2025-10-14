@@ -3,6 +3,7 @@ import { useParams, useLocation, useNavigate } from "react-router-dom";
 import api from "../api/api";
 import { jwtDecode } from "jwt-decode";
 import VideoFrame from "../components/frame/VideoFrame";
+import RecommendedMovies from "../components/common/RecommendedMovies";
 
 const MoviePlayer = () => {
   const { id, title, episodeNumber } = useParams();
@@ -767,6 +768,8 @@ const MoviePlayer = () => {
           )}
         </div>
       </div>
+
+      <RecommendedMovies movieId={id} />
     </div>
   );
 };
