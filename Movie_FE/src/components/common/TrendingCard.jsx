@@ -13,7 +13,6 @@ export default function MovieCarousel() {
     const fetchTrending = async () => {
       try {
         const res = await api.get("/api/trending/all");
-        console.log(res.data);
         setMovies(res.data);
       } catch (err) {
         console.error("Lỗi fetch trending movies:", err);

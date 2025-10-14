@@ -69,3 +69,38 @@ def recommend_movies(user_id: int, top_n: int = 10):
 
     except Exception as e:
         return {"error": f"Lỗi trong quá trình gợi ý: {str(e)}"}
+
+
+
+@app.get("/similar/{movie_id}")
+def recommend_similar_movies(movie_id: int, top_n: int = 10):
+    """Gợi ý phim tương tự với phim đang xem"""
+    try:
+        # Tìm index của phim hiện tại
+        idx_list = movies.index[movies["Id"] == movie_id].tolist()
+        if not idx_list:
+            return {"error": f"Không tìm thấy phim có Id = {movie_id}"}
+        idx = idx_list[0]
+
+        # Lấy điểm tương đồng (cosine similarity)
+        sim_scores = list(enumerate(cosine_sim[idx]))
+        sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
+
+        # Lấy top_n phim tương tự (bỏ chính nó)
+        sim_scores = sim_scores[1:top_n + 1]
+
+        recommendations = []
+        for i, score in sim_scores:
+            rec_id = int(movies.iloc[i]["Id"])
+            rec_title = movies.iloc[i]["Title"]
+            recommendations.append({
+                "Id": rec_id,
+                "Title": rec_title,
+                "Similarity": round(float(score), 3)
+            })
+
+        return {"BaseMovieId": movie_id, "Recommendations": recommendations}
+
+    except Exception as e:
+        return {"error": f"Lỗi khi gợi ý phim tương tự: {str(e)}"}
+

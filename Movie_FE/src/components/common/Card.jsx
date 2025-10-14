@@ -5,7 +5,9 @@ import { FaStar } from "react-icons/fa";
 
 const Card = ({ data, trending, index, media_type }) => {
   // Chuẩn hóa mediaType để khớp với route
-  const mediaType = media_type === "movie" ? "movies" : "tvseries";
+  // Ưu tiên mediaType từ data nếu có, nếu không thì dùng media_type prop
+  const actualMediaType = data?.mediaType || media_type;
+  const mediaType = actualMediaType === "movie" ? "movies" : "tvseries";
 
   // Backend đã xử lý slug, chỉ cần truyền title (có thể là bất kỳ giá trị, backend bỏ qua)
   const titlePlaceholder = data.title

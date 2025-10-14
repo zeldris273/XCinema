@@ -15,6 +15,8 @@ using Movie_BE.Services;
 using Microsoft.AspNetCore.Identity;
 using backend.Models;
 
+
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Tăng giới hạn kích thước request body (2GB)
@@ -132,8 +134,11 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Thêm MemoryCache
 builder.Services.AddMemoryCache();
+
+// Thêm MemoryCache
+builder.Services.AddHttpClient();
+
 
 var app = builder.Build();
 
