@@ -34,6 +34,17 @@ public class GenresController : ControllerBase
         return Ok(genres);
     }
 
+    // ✅ GET: api/genres/dropdown - Chuyên dụng cho dropdown
+    [HttpGet("dropdown")]
+    public async Task<IActionResult> GetGenresForDropdown()
+    {
+        var genres = await _context.Genres
+            .OrderBy(g => g.Name)
+            .Select(g => new { g.Id, g.Name })
+            .ToListAsync();
+
+        return Ok(genres);
+    }
 
     // POST: api/genres
     [HttpPost]
@@ -90,4 +101,43 @@ public class GenresController : ControllerBase
         await _context.SaveChangesAsync();
         return Ok();
     }
+
+    [HttpGet("{genreId}/media")]
+    public async Task<IActionResult> GetMediaByGenre(int genreId)
+    {
+        var movies = await _context.Movies
+            .Include(m => m.MovieGenres)
+            .ThenInclude(mg => mg.Genre)
+            .Where(m => m.MovieGenres.Any(mg => mg.GenreId == genreId))
+            .Select(m => new
+            {
+                Id = m.Id,
+                Title = m.Title,
+                PosterUrl = m.PosterUrl,
+                ReleaseDate = m.ReleaseDate,
+                Rating = m.Rating,
+                Type = "movie"
+            })
+            .ToListAsync();
+
+        var tvSeries = await _context.TvSeries
+            .Include(t => t.TvSeriesGenres)
+            .ThenInclude(tg => tg.Genre)
+            .Where(t => t.TvSeriesGenres.Any(tg => tg.GenreId == genreId))
+            .Select(t => new
+            {
+                Id = t.Id,
+                Title = t.Title,
+                PosterUrl = t.PosterUrl,
+                ReleaseDate = t.ReleaseDate,
+                Rating = t.Rating,
+                Type = "tv"
+            })
+            .ToListAsync();
+
+        var allMedia = movies.Concat(tvSeries).ToList();
+
+        return Ok(allMedia);
+    }
+
 }

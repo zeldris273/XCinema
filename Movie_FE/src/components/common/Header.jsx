@@ -9,6 +9,7 @@ import { logoutUser } from "../../store/authSlice";
 import { jwtDecode } from "jwt-decode";
 import { useUserProfile } from "../../hooks/useUserProfile";
 import { FiLogOut } from "react-icons/fi";
+import api from "../../api/api";
 
 const Header = () => {
   const location = useLocation();
@@ -21,8 +22,11 @@ const Header = () => {
   const [searchInput, setSearchInput] = useState(removeSpace || "");
   const [isAdmin, setIsAdmin] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const [isHovered, setIsHovered] = useState(false); // State để theo dõi hover trên desktop
-  const timeoutRef = useState(null); // Ref để quản lý delay khi rời hover
+  const [isHovered, setIsHovered] = useState(false);
+  const [genres, setGenres] = useState([]);
+  const [isGenreOpen, setIsGenreOpen] = useState(false);
+
+  const timeoutRef = useState(null);
 
   useEffect(() => {
     if (!location.pathname.startsWith("/search")) {
@@ -55,6 +59,25 @@ const Header = () => {
       setIsAdmin(false);
     }
   }, [token]);
+
+  useEffect(() => {
+    const fetchGenres = async () => {
+      try {
+        const res = await api.get("/api/genres/dropdown");
+        setGenres(res.data);
+      } catch (err) {
+        console.error("❌ Lỗi khi tải thể loại:", err);
+      }
+    };
+    fetchGenres();
+  }, []);
+
+  const handleGenreEnter = () => {
+    setIsGenreOpen(true);
+  };
+  const handleGenreLeave = () => {
+    setIsGenreOpen(false);
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -123,18 +146,59 @@ const Header = () => {
 
         <nav className="hidden lg:flex items-center gap-1 ml-5">
           {navigation.map((nav, index) => (
-            <div key={"Header" + index}>
-              <NavLink
-                key={nav.label}
-                to={nav.href}
-                className={({ isActive }) =>
-                  `px-2 hover:text-neutral-100 ${
-                    isActive ? "text-neutral-100" : "text-white"
-                  }`
-                }
-              >
-                {nav.label}
-              </NavLink>
+            <div key={"Header" + index} className="relative">
+              {nav.label === "Genres" ? (
+                <div
+                  className="relative"
+                  onMouseEnter={handleGenreEnter}
+                  onMouseLeave={handleGenreLeave}
+                >
+                  <span className="px-2 text-white cursor-pointer hover:text-neutral-100">
+                    {nav.label}
+                  </span>
+
+                  {isGenreOpen && (
+                    <div className="absolute top-full left-0 pt-2 z-50">
+                      <div
+                        className="w-56 max-h-[400px] overflow-y-auto bg-neutral-800 border border-neutral-700 rounded-md shadow-lg custom-scrollbar"
+                        style={{
+                          scrollbarWidth: "thin",
+                          scrollbarColor: "#525252 #262626",
+                        }}
+                      >
+                        {genres.length > 0 ? (
+                          genres.map((g) => (
+                            <Link
+                              key={g.id}
+                              to={`/genres/${g.id}`}
+                              className="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150"
+                              onClick={() => setIsGenreOpen(false)}
+                            >
+                              {g.name}
+                            </Link>
+                          ))
+                        ) : (
+                          <p className="px-4 py-2 text-gray-400 text-sm">
+                            Đang tải...
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <NavLink
+                  key={nav.label}
+                  to={nav.href}
+                  className={({ isActive }) =>
+                    `px-2 hover:text-neutral-100 ${
+                      isActive ? "text-neutral-100" : "text-white"
+                    }`
+                  }
+                >
+                  {nav.label}
+                </NavLink>
+              )}
             </div>
           ))}
         </nav>

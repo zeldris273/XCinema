@@ -10,6 +10,7 @@ import MoviePlayer from "../pages/MoviePlayer";
 import AdminDashboard from "../pages/AdminDashboard";
 import NotFoundPage from "../pages/NotFoundPage";
 import AccountPage from "../pages/AccountPage";
+import GenrePage from "../pages/GenrePage";
 
 const router = createBrowserRouter([
   {
@@ -59,6 +60,10 @@ const router = createBrowserRouter([
       {
         path: "admin-dashboard",
         element: <AdminDashboard />,
+      },
+      {
+        path: "/genres/:id",
+        element: <GenrePage />,
       },
       {
         path: "user/profile",
