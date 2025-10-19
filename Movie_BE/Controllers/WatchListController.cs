@@ -32,7 +32,7 @@ namespace backend.Controllers
             }
 
             var watchList = _context.WatchList
-                .Where(w => w.UserId == userId) 
+                .Where(w => w.UserId == userId)
                 .Select(w => new
                 {
                     mediaId = w.MediaId,
@@ -114,5 +114,69 @@ namespace backend.Controllers
 
             return Ok(new { message = "Removed from watch list successfully." });
         }
+
+        [HttpGet("most-favorited")]
+        [AllowAnonymous]
+        public IActionResult GetMostFavoritedMedia()
+        {
+            // 🔹 Nhóm theo MediaId + MediaType để đếm số lượng yêu thích
+            var favoriteGroups = _context.WatchList
+                .GroupBy(w => new { w.MediaId, w.MediaType })
+                .Select(g => new
+                {
+                    MediaId = g.Key.MediaId,
+                    MediaType = g.Key.MediaType,
+                    Count = g.Count()
+                })
+                .OrderByDescending(g => g.Count)
+                .Take(20) // top 20 phim/series được yêu thích nhất
+                .ToList();
+
+            // 🔹 Lấy thông tin chi tiết (Movie + TV)
+            var result = favoriteGroups.Select(f =>
+            {
+                if (f.MediaType == "movie")
+                {
+                    var movie = _context.Movies.FirstOrDefault(m => m.Id == f.MediaId);
+                    if (movie != null)
+                    {
+                        return new
+                        {
+                            Id = movie.Id,
+                            Title = movie.Title,
+                            PosterUrl = movie.PosterUrl,
+                            Rating = movie.Rating,
+                            ReleaseDate = movie.ReleaseDate,
+                            Type = "movie",
+                            FavoriteCount = f.Count
+                        };
+                    }
+                }
+                else if (f.MediaType == "tv")
+                {
+                    var tv = _context.TvSeries.FirstOrDefault(t => t.Id == f.MediaId);
+                    if (tv != null)
+                    {
+                        return new
+                        {
+                            Id = tv.Id,
+                            Title = tv.Title,
+                            PosterUrl = tv.PosterUrl,
+                            Rating = tv.Rating,
+                            ReleaseDate = tv.ReleaseDate,
+                            Type = "tv",
+                            FavoriteCount = f.Count
+                        };
+                    }
+                }
+                return null;
+            })
+            .Where(x => x != null)
+            .OrderByDescending(x => x.FavoriteCount)
+            .ToList();
+
+            return Ok(result);
+        }
+
     }
 }

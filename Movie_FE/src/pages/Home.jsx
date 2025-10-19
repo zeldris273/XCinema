@@ -31,7 +31,9 @@ const getMediaTypeFromPosterUrl = (posterUrl) => {
 const Home = () => {
   const userId = getUserIdFromToken();
   const { data: topRatedMovies } = useFetch("/api/movies/top-rated-by-votes");
-  const { data: mostViewedTvSeries } = useFetch("/api/tvseries/most-viewed");
+  const { data: mostFavoriteMovies } = useFetch(
+    "/api/watchlist/most-favorited"
+  );
 
   const {
     data: recommendedMovies,
@@ -47,13 +49,6 @@ const Home = () => {
     <div>
       <BannerHome />
       <TrendingCard />
-      {/* Debug info */}
-
-      {userId && recommendationLoading && (
-        <div className="container mx-auto px-3 my-10">
-          <p className="text-white">🔄 Đang tải gợi ý phim...</p>
-        </div>
-      )}
 
       {userId &&
         recommendedMovies &&
@@ -75,12 +70,12 @@ const Home = () => {
 
       <HorizontalScrollCard
         data={topRatedMovies}
-        heading={"Movies with Most Ratings"}
+        heading={"Feast Your Eyes on Movies in Theaters"}
         media_type={"movie"}
       />
       <HorizontalScrollCard
-        data={mostViewedTvSeries}
-        heading={"Most Viewed TV Series"}
+        data={mostFavoriteMovies}
+        heading={"most favorite movies"}
         media_type={"tv"}
       />
     </div>

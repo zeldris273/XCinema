@@ -6,14 +6,14 @@ using backend.Models;
 
 namespace Movie_BE.Models
 {
-    public class WatchList 
+    public class WatchList
     {
-        public int Id { get; set; } // Primary key
-        public int UserId { get; set; } // ID của user (liên kết với bảng Users)
-        public int MediaId { get; set; } // ID của movie hoặc TV series
-        public string MediaType { get; set; } // "movie" hoặc "tv"
+        public int Id { get; set; }
+        public int UserId { get; set; }
+        public int MediaId { get; set; }
+        public string MediaType { get; set; }
         public DateTime AddedDate { get; set; }
 
         public CustomUser User { get; set; }
     }
-}   
+}

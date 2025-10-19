@@ -296,7 +296,6 @@ namespace backend.Controllers
 
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin")]
-
         public async Task<IActionResult> UpdateMovie(int id, [FromBody] MovieResponseDTO updatedMovie)
         {
             var movie = await _context.Movies
@@ -304,6 +303,7 @@ namespace backend.Controllers
                 .ThenInclude(ma => ma.Actor)
                 .Include(m => m.MovieGenres)
                 .FirstOrDefaultAsync(m => m.Id == id);
+
             if (movie == null) return NotFound();
 
             movie.Title = updatedMovie.Title;
@@ -322,28 +322,25 @@ namespace backend.Controllers
             movie.VideoUrl = updatedMovie.VideoUrl;
             movie.TrailerUrl = updatedMovie.TrailerUrl;
 
-            // Xử lý genres - chỉ thêm/xóa khi cần thiết
-            var currentGenreIds = movie.MovieGenres.Select(mg => mg.GenreId).ToList();
-            var newGenreIds = updatedMovie.GenreIds ?? new List<int>();
-
-            // Xóa genres không còn trong danh sách mới
-            var genresToRemove = movie.MovieGenres.Where(mg => !newGenreIds.Contains(mg.GenreId)).ToList();
-            foreach (var genreToRemove in genresToRemove)
+            // Xử lý genres - chỉ thêm mới, không xóa
+            if (updatedMovie.GenreIds != null && updatedMovie.GenreIds.Any())
             {
-                _context.MovieGenres.Remove(genreToRemove);
-            }
+                var currentGenreIds = movie.MovieGenres.Select(mg => mg.GenreId).ToList();
 
-            // Thêm genres mới
-            var genresToAdd = newGenreIds.Where(gId => !currentGenreIds.Contains(gId) && _context.Genres.Any(g => g.Id == gId)).ToList();
-            foreach (var genreId in genresToAdd)
-            {
-                _context.MovieGenres.Add(new MovieGenre
+                // Chỉ thêm genres mới (chưa có)
+                var genresToAdd = updatedMovie.GenreIds
+                    .Where(gId => !currentGenreIds.Contains(gId) && _context.Genres.Any(g => g.Id == gId))
+                    .ToList();
+
+                foreach (var genreId in genresToAdd)
                 {
-                    MovieId = movie.Id,
-                    GenreId = genreId
-                });
+                    _context.MovieGenres.Add(new MovieGenre
+                    {
+                        MovieId = movie.Id,
+                        GenreId = genreId
+                    });
+                }
             }
-
 
             if (updatedMovie.Actors != null && updatedMovie.Actors.Any())
             {
@@ -375,7 +372,6 @@ namespace backend.Controllers
             await _context.SaveChangesAsync();
             return NoContent();
         }
-
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteMovie(int id)

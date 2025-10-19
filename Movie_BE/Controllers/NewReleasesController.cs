@@ -11,14 +11,14 @@ namespace Movie_BE.Controllers
     [ApiController]
     public class NewReleasesController : ControllerBase
     {
-        private readonly MovieDbContext _context;   
+        private readonly MovieDbContext _context;
 
         public NewReleasesController(MovieDbContext context)
         {
             _context = context;
         }
 
-        // GET: api/new-releases
+
         [HttpGet]
         public async Task<IActionResult> GetNewReleases(
             [FromQuery] int limit = 10,
@@ -27,9 +27,9 @@ namespace Movie_BE.Controllers
         {
             try
             {
-                // Lấy phim lẻ mới nhất (status = 'Released')
-                var newMovies = _context.Movies
-                    .Where(m => m.Status == "Released")
+                // Lấy danh sách phim lẻ (Released)
+                var movieList = await _context.Movies
+                    .Where(m => m.Status.ToLower() == "released")
                     .Select(m => new
                     {
                         Id = m.Id,
@@ -37,13 +37,15 @@ namespace Movie_BE.Controllers
                         Overview = m.Overview,
                         ViewCount = (int?)m.ViewCount,
                         Rating = (double?)m.Rating,
+                        ReleaseDate = m.ReleaseDate,
                         BackdropUrl = m.BackdropUrl,
                         MediaType = "movie"
-                    });
+                    })
+                    .ToListAsync();
 
-                // Lấy phim bộ mới nhất (status = 'Ongoing' hoặc 'Completed')
-                var newTvSeries = _context.TvSeries
-                    .Where(t => t.Status == "Ongoing" || t.Status == "Completed")
+                // Lấy danh sách phim bộ (Ongoing hoặc Completed)
+                var tvList = await _context.TvSeries
+                    .Where(t => t.Status.ToLower() == "ongoing" || t.Status.ToLower() == "completed")
                     .Select(t => new
                     {
                         Id = t.Id,
@@ -51,37 +53,39 @@ namespace Movie_BE.Controllers
                         Overview = t.Overview,
                         ViewCount = (int?)t.ViewCount,
                         Rating = (double?)t.Rating,
+                        ReleaseDate = t.ReleaseDate,
                         BackdropUrl = t.BackdropUrl,
                         MediaType = "tvseries"
-                    });
+                    })
+                    .ToListAsync();
 
-                // Kết hợp cả hai danh sách
-                var combinedReleases = Queryable.Concat(newMovies, newTvSeries);
+                // Gộp dữ liệu movie + tv
+                var combined = movieList.Concat(tvList);
 
-                // Lọc theo mediaType nếu có
+                // Nếu có filter mediaType
                 if (!string.IsNullOrEmpty(mediaType))
                 {
-                    if (mediaType.ToLower() == "movie" || mediaType.ToLower() == "tvseries")
-                    {
-                        combinedReleases = combinedReleases
-                            .Where(r => r.MediaType == mediaType.ToLower());
-                    }
-                    else
-                    {
+                    var normalized = mediaType.ToLower();
+                    if (normalized != "movie" && normalized != "tvseries")
                         return BadRequest(new { error = "Invalid mediaType. Use 'movie' or 'tvseries'." });
-                    }
+
+                    combined = combined.Where(r => r.MediaType == normalized);
                 }
 
-                // Tổng số bản phát hành
-                var total = await combinedReleases.CountAsync();
+                // Tổng số lượng
+                var total = combined.Count();
 
-                
-                var releases = await combinedReleases
-                    .OrderByDescending(r => r.ViewCount)
+                // Sắp xếp: theo ngày phát hành mới nhất + rating cao
+                var releases = combined
+                    .OrderByDescending(r => r.ReleaseDate)
                     .ThenByDescending(r => r.Rating)
                     .Skip(offset)
                     .Take(limit)
-                    .ToListAsync();
+                    .ToList();
+
+                // ✅ Logging để debug (tùy chọn)
+                Console.WriteLine($"Movies found: {movieList.Count}, TV Series found: {tvList.Count}");
+                Console.WriteLine($"Returning {releases.Count} items (limit={limit}, offset={offset})");
 
                 return Ok(new
                 {
