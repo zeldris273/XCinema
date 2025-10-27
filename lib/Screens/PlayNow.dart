@@ -4,13 +4,13 @@ import 'package:video_player/video_player.dart';
 import '../services/TvSeriesService.dart';
 import '../services/CommentService.dart';
 import '../utils/TokenStorage.dart';
-import 'dart:convert';
+import '../utils/JwtHelper.dart';
 
 class PlayNowScreen extends StatefulWidget {
   final bool isTvSeries;
   final String? videoUrl;
   final int? seriesId;
-  final int? movieId; // ✅ Thêm movieId
+  final int? movieId;
   final String? title;
 
   const PlayNowScreen({
@@ -26,42 +26,48 @@ class PlayNowScreen extends StatefulWidget {
   State<PlayNowScreen> createState() => _PlayNowScreenState();
 }
 
-class _PlayNowScreenState extends State<PlayNowScreen> {
+class _PlayNowScreenState extends State<PlayNowScreen> with WidgetsBindingObserver {
   final TextEditingController _commentController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  final GlobalKey _commentInputKey = GlobalKey();
   final CommentService _commentService = CommentService();
 
   List<Map<String, dynamic>> _comments = [];
   bool _isLoadingComments = false;
+
+  int? _replyToCommentId;
+  String? _replyToUsername;
 
   List<Map<String, dynamic>> _seasons = [];
   List<Map<String, dynamic>> _episodes = [];
 
   int? _selectedSeasonId;
   int? _selectedEpisodeNumber;
-  int? _currentEpisodeId; // ✅ Track current episode for comments
+  int? _currentEpisodeId;
   String? _currentVideoUrl;
 
   bool _isLoadingSeasons = false;
   bool _isLoadingEpisodes = false;
 
   VideoPlayerController? _controller;
+  bool _isDisposed = false; // ✅ Track disposed state
 
-  int? _currentUserId; // ✅ Lưu userId
+  int? _currentUserId;
 
   @override
   void initState() {
     super.initState();
+    // ✅ Add observer để track app lifecycle
+    WidgetsBinding.instance.addObserver(this);
+
     _loadUserId();
     _loadComments();
 
-    // ===== DEBUG =====
     print('🔍 PlayNowScreen initState');
     print('🔍 isTvSeries: ${widget.isTvSeries}');
     print('🔍 seriesId: ${widget.seriesId}');
     print('🔍 movieId: ${widget.movieId}');
     print('🔍 videoUrl: ${widget.videoUrl}');
-    print('🔍 title: ${widget.title}');
-    // ==================
 
     if (widget.isTvSeries && widget.seriesId != null) {
       print('✅ Detected TV Series - Fetching seasons...');
@@ -75,8 +81,29 @@ class _PlayNowScreenState extends State<PlayNowScreen> {
     }
   }
 
-  /// ✅ Load userId từ token
-  /// ✅ Load userId từ token
+  // ✅ Handle app lifecycle changes
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    print('📱 App lifecycle changed: $state');
+    if (state == AppLifecycleState.paused) {
+      _pauseVideo();
+    } else if (state == AppLifecycleState.inactive) {
+      _pauseVideo();
+    }
+  }
+
+  // ✅ Helper để pause video an toàn
+  void _pauseVideo() {
+    if (!_isDisposed && _controller != null && _controller!.value.isInitialized) {
+      try {
+        _controller!.pause();
+        print('✅ Video paused');
+      } catch (e) {
+        print('⚠️ Error pausing video: $e');
+      }
+    }
+  }
+
   Future<void> _loadUserId() async {
     try {
       final token = await TokenStorage.getToken();
@@ -86,37 +113,20 @@ class _PlayNowScreenState extends State<PlayNowScreen> {
       }
 
       print('🔍 Token exists, decoding...');
+      _currentUserId = JwtHelper.getUserId(token);
 
-      // Decode JWT token để lấy userId
-      final parts = token.split('.');
-      if (parts.length == 3) {
-        final payload = json.decode(
-          utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))),
-        );
-
-        print('📦 Token payload: $payload');
-
-        // ✅ Backend .NET dùng key này cho userId
-        final userIdString = payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'];
-
-        if (userIdString != null) {
-          _currentUserId = int.tryParse(userIdString.toString());
-          print('✅ Current userId: $_currentUserId');
-        } else {
-          print('❌ nameidentifier not found in token');
-        }
+      if (_currentUserId != null) {
+        print('✅ Current userId: $_currentUserId');
       } else {
-        print('❌ Invalid token format');
+        print('❌ Failed to extract userId from token');
       }
-    } catch (e, stackTrace) {
+    } catch (e) {
       print('❌ Error loading userId: $e');
-      print('Stack trace: $stackTrace');
     }
   }
 
-  /// 📜 Load comments từ API
   Future<void> _loadComments() async {
-    if (_isLoadingComments) return;
+    if (_isLoadingComments || _isDisposed) return;
 
     setState(() => _isLoadingComments = true);
 
@@ -124,13 +134,11 @@ class _PlayNowScreenState extends State<PlayNowScreen> {
       List<Map<String, dynamic>> comments;
 
       if (widget.isTvSeries && widget.seriesId != null) {
-        // Load comments cho TV Series (có thể filter theo episode)
         comments = await _commentService.getComments(
           tvSeriesId: widget.seriesId,
           episodeId: _currentEpisodeId,
         );
       } else if (widget.movieId != null) {
-        // Load comments cho Movie
         comments = await _commentService.getComments(
           movieId: widget.movieId,
         );
@@ -138,28 +146,24 @@ class _PlayNowScreenState extends State<PlayNowScreen> {
         comments = [];
       }
 
-      // ✅ DEBUG: In ra comment đầu tiên
       if (comments.isNotEmpty) {
-        print('📦 First comment structure:');
-        print('   - id: ${comments[0]['id']}');
-        print('   - userId: ${comments[0]['userId']}');
-        print('   - username: ${comments[0]['username']}');
-        print('   - displayName: ${comments[0]['displayName']}');
-        print('   - avatarUrl: ${comments[0]['avatarUrl']}');
-        print('   - commentText: ${comments[0]['commentText']}');
+        print('📦 Fetched ${comments.length} comments');
       }
 
-      setState(() {
-        _comments = comments;
-        _isLoadingComments = false;
-      });
+      if (!_isDisposed && mounted) {
+        setState(() {
+          _comments = comments;
+          _isLoadingComments = false;
+        });
+      }
     } catch (e) {
       print('❌ Error loading comments: $e');
-      setState(() => _isLoadingComments = false);
+      if (!_isDisposed && mounted) {
+        setState(() => _isLoadingComments = false);
+      }
     }
   }
 
-  /// ✍️ Thêm comment
   Future<void> _addComment() async {
     if (_commentController.text.trim().isEmpty || _currentUserId == null) {
       if (_currentUserId == null) {
@@ -180,45 +184,46 @@ class _PlayNowScreenState extends State<PlayNowScreen> {
         movieId: widget.movieId,
         tvSeriesId: widget.seriesId,
         episodeId: _currentEpisodeId,
+        parentCommentId: _replyToCommentId,
       );
 
       if (result != null) {
         _commentController.clear();
-        _loadComments(); // Reload comments
+
+        setState(() {
+          _replyToCommentId = null;
+          _replyToUsername = null;
+        });
+
+        _loadComments();
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Comment posted successfully!'),
+            SnackBar(
+              content: Text(
+                  _replyToCommentId != null
+                      ? 'Reply posted successfully!'
+                      : 'Comment posted successfully!'
+              ),
               backgroundColor: Colors.green,
-              duration: Duration(seconds: 2),
-            ),
-          );
-        }
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Failed to post comment'),
-              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 2),
             ),
           );
         }
       }
     } catch (e) {
       print('❌ Error adding comment: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
     }
   }
 
-  /// 🗑️ Xóa comment
+  void _cancelReply() {
+    setState(() {
+      _replyToCommentId = null;
+      _replyToUsername = null;
+    });
+    _commentController.clear();
+  }
+
   Future<void> _deleteComment(int commentId) async {
     if (_currentUserId == null) return;
 
@@ -251,122 +256,85 @@ class _PlayNowScreenState extends State<PlayNowScreen> {
       userId: _currentUserId!,
     );
 
-    if (success) {
+    if (success && mounted) {
       _loadComments();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Comment deleted'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-      }
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to delete comment'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Comment deleted'),
+          backgroundColor: Colors.orange,
+        ),
+      );
     }
   }
 
-  // ===== FETCH SEASONS =====
   Future<void> _fetchSeasons() async {
+    if (_isDisposed) return;
     setState(() => _isLoadingSeasons = true);
-    print('🔵 Fetching seasons for seriesId: ${widget.seriesId}');
 
     try {
       final data = await TvSeriesService().getSeasons(widget.seriesId!);
 
-      setState(() {
-        _seasons = data;
-        _isLoadingSeasons = false;
-      });
+      if (!_isDisposed && mounted) {
+        setState(() {
+          _seasons = data;
+          _isLoadingSeasons = false;
+        });
 
-      print('✅ Received ${_seasons.length} season(s)');
-
-      if (_seasons.isNotEmpty) {
-        final firstSeasonId = _seasons.first['id'];
-        _fetchEpisodes(firstSeasonId);
-      } else {
-        print('⚠️ No seasons found for this series.');
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No seasons found for this series')),
-          );
+        if (_seasons.isNotEmpty) {
+          final firstSeasonId = _seasons.first['id'];
+          _fetchEpisodes(firstSeasonId);
         }
       }
     } catch (e) {
-      setState(() => _isLoadingSeasons = false);
       print('❌ Error fetching seasons: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to fetch seasons: $e')),
-        );
+      if (!_isDisposed && mounted) {
+        setState(() => _isLoadingSeasons = false);
       }
     }
   }
 
-  // ===== FETCH EPISODES =====
   Future<void> _fetchEpisodes(int seasonId) async {
+    if (_isDisposed) return;
+
     setState(() {
       _isLoadingEpisodes = true;
       _episodes = [];
       _selectedSeasonId = seasonId;
     });
 
-    print('🔵 Fetching episodes for seasonId: $seasonId');
-
     try {
       final data = await TvSeriesService().getEpisodes(seasonId);
 
-      setState(() {
-        _episodes = data;
-        _isLoadingEpisodes = false;
-      });
+      if (!_isDisposed && mounted) {
+        setState(() {
+          _episodes = data;
+          _isLoadingEpisodes = false;
+        });
 
-      print('✅ Received ${_episodes.length} episode(s)');
-
-      if (_episodes.isNotEmpty) {
-        final firstEpisode = _episodes.first;
-        _selectedEpisodeNumber = firstEpisode['episodeNumber'];
-        _currentEpisodeId = firstEpisode['id']; // ✅ Set current episode
-        _playVideo(firstEpisode['videoUrl']);
-        _loadComments(); // ✅ Load comments for this episode
-      } else {
-        print('⚠️ No episodes found for this season.');
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No episodes found for this season')),
-          );
+        if (_episodes.isNotEmpty) {
+          final firstEpisode = _episodes.first;
+          _selectedEpisodeNumber = firstEpisode['episodeNumber'];
+          _currentEpisodeId = firstEpisode['id'];
+          _playVideo(firstEpisode['videoUrl']);
+          _loadComments();
         }
       }
     } catch (e) {
-      setState(() => _isLoadingEpisodes = false);
       print('❌ Error fetching episodes: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to fetch episodes: $e')),
-        );
+      if (!_isDisposed && mounted) {
+        setState(() => _isLoadingEpisodes = false);
       }
     }
   }
 
-  // ===== INITIALIZE VIDEO PLAYER =====
   Future<void> _initializePlayer() async {
-    print('🎥 _initializePlayer called');
-    print('🎥 Current video URL: $_currentVideoUrl');
-
-    if (_currentVideoUrl == null || _currentVideoUrl!.isEmpty) {
-      print('⚠️ Không có videoUrl để phát.');
+    if (_isDisposed || _currentVideoUrl == null || _currentVideoUrl!.isEmpty) {
       return;
     }
 
     print('🎬 Initializing video: $_currentVideoUrl');
 
+    // ✅ Dispose controller cũ
     _controller?.dispose();
     _controller = VideoPlayerController.networkUrl(Uri.parse(_currentVideoUrl!));
 
@@ -374,40 +342,24 @@ class _PlayNowScreenState extends State<PlayNowScreen> {
       await _controller!.initialize();
       print('✅ Video initialized successfully!');
 
-      if (mounted) {
+      if (!_isDisposed && mounted) {
         setState(() {});
-        _controller!.play();
-        print('✅ Playback started!');
+        // ✅ KHÔNG TỰ ĐỘNG PLAY - Để user bấm play
+        // _controller!.play();
       }
     } catch (e) {
-      print('❌ Lỗi khởi tạo video player: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading video: $e')),
-        );
-      }
+      print('❌ Error initializing video: $e');
     }
   }
 
-  // ===== PLAY VIDEO =====
   void _playVideo(String? url) {
-    print('🎯 _playVideo called');
-    print('🎯 URL received: $url');
+    if (_isDisposed || url == null || url.isEmpty) return;
 
-    if (url == null || url.isEmpty) {
-      print('⚠️ URL rỗng, không thể phát video.');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invalid video URL')),
-      );
-      return;
-    }
-
-    print('✅ Setting video URL to: $url');
+    print('🎯 Playing video: $url');
     setState(() => _currentVideoUrl = url);
     _initializePlayer();
   }
 
-  /// ✅ Format timestamp
   String _formatTimestamp(dynamic timestamp) {
     try {
       DateTime dt;
@@ -440,246 +392,298 @@ class _PlayNowScreenState extends State<PlayNowScreen> {
 
   @override
   void dispose() {
-    print('🔴 Disposing PlayNowScreen');
-    _controller?.pause(); // ✅ Pause trước khi dispose
-    _controller?.dispose();
+    print('🔴 ========== DISPOSE CALLED ==========');
+    _isDisposed = true;
+
+    // ✅ Remove observer
+    WidgetsBinding.instance.removeObserver(this);
+
+    // ✅ Dispose video controller
+    if (_controller != null) {
+      print('🎥 Disposing video controller...');
+      try {
+        _controller!.pause();
+        _controller!.dispose();
+        print('✅ Video controller disposed');
+      } catch (e) {
+        print('❌ Error disposing controller: $e');
+      }
+    }
+
     _commentController.dispose();
+    _scrollController.dispose();
+
+    print('🔴 ========== DISPOSE COMPLETED ==========');
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      // ✅ Fix lỗi back button
-      onWillPop: () async {
-        print('🔙 Back button pressed - pausing video');
-        _controller?.pause();
-        return true; // Allow navigation
-      },
-      child: Scaffold(
-        backgroundColor: Colors.black,
-        body: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ===== VIDEO PLAYER =====
-              Container(
-                color: Colors.black,
-                width: double.infinity,
-                height: MediaQuery.of(context).size.height * 0.55,
-                child: Stack(
-                  children: [
-                    if (_controller != null && _controller!.value.isInitialized)
-                      Center(
-                        child: AspectRatio(
-                          aspectRatio: _controller!.value.aspectRatio,
-                          child: VideoPlayer(_controller!),
-                        ),
-                      )
-                    else if (_isLoadingSeasons || _isLoadingEpisodes)
-                      const Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            CircularProgressIndicator(color: Colors.yellow),
-                            SizedBox(height: 16),
-                            Text(
-                              'Loading...',
-                              style: TextStyle(color: Colors.white70, fontSize: 16),
-                            ),
-                          ],
-                        ),
-                      )
-                    else
-                      const Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.play_circle_fill, color: Colors.white70, size: 80),
-                            SizedBox(height: 16),
-                            Text(
-                              'Select an episode to play',
-                              style: TextStyle(color: Colors.white70, fontSize: 16),
-                            ),
-                          ],
-                        ),
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: SingleChildScrollView(
+        controller: _scrollController,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              color: Colors.black,
+              width: double.infinity,
+              height: MediaQuery.of(context).size.height * 0.55,
+              child: Stack(
+                children: [
+                  if (_controller != null && _controller!.value.isInitialized)
+                    Center(
+                      child: AspectRatio(
+                        aspectRatio: _controller!.value.aspectRatio,
+                        child: VideoPlayer(_controller!),
                       ),
-
-                    // ✅ Back button - Fix lỗi
-                    Positioned(
-                      top: 40,
-                      left: 16,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.5),
-                          shape: BoxShape.circle,
-                        ),
-                        child: IconButton(
-                          icon: const Icon(Icons.arrow_back, color: Colors.white),
-                          onPressed: () {
-                            print('🔙 Back button tapped - pausing video');
-                            _controller?.pause(); // ✅ Pause video
-                            Navigator.pop(context);
-                          },
-                        ),
+                    )
+                  else if (_isLoadingSeasons || _isLoadingEpisodes)
+                    const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          CircularProgressIndicator(color: Colors.yellow),
+                          SizedBox(height: 16),
+                          Text(
+                            'Loading...',
+                            style: TextStyle(color: Colors.white70, fontSize: 16),
+                          ),
+                        ],
+                      ),
+                    )
+                  else
+                    const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.play_circle_fill, color: Colors.white70, size: 80),
+                          SizedBox(height: 16),
+                          Text(
+                            'Select an episode to play',
+                            style: TextStyle(color: Colors.white70, fontSize: 16),
+                          ),
+                        ],
                       ),
                     ),
 
-                    // Play/Pause overlay
-                    if (_controller != null && _controller!.value.isInitialized)
-                      Positioned.fill(
-                        child: GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _controller!.value.isPlaying
-                                  ? _controller!.pause()
-                                  : _controller!.play();
-                            });
-                          },
-                          child: Container(
-                            color: Colors.transparent,
-                            child: Center(
-                              child: AnimatedOpacity(
-                                opacity: _controller!.value.isPlaying ? 0.0 : 1.0,
-                                duration: const Duration(milliseconds: 300),
-                                child: Container(
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black.withOpacity(0.5),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Icon(
-                                    _controller!.value.isPlaying
-                                        ? Icons.pause
-                                        : Icons.play_arrow,
-                                    color: Colors.white,
-                                    size: 50,
-                                  ),
+                  // ✅ BACK BUTTON SIMPLE
+                  Positioned(
+                    top: 40,
+                    left: 16,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.5),
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                        onPressed: () {
+                          print('🔙 ========== BACK BUTTON PRESSED ==========');
+                          _pauseVideo();
+                          Navigator.of(context).pop();
+                        },
+                      ),
+                    ),
+                  ),
+
+                  // ✅ Play/Pause overlay - CHẠM ĐỂ PLAY
+                  if (_controller != null && _controller!.value.isInitialized)
+                    Positioned.fill(
+                      child: GestureDetector(
+                        onTap: () {
+                          print('🎬 Video tap detected');
+                          setState(() {
+                            if (_controller!.value.isPlaying) {
+                              _controller!.pause();
+                              print('⏸️ Paused');
+                            } else {
+                              _controller!.play();
+                              print('▶️ Playing');
+                            }
+                          });
+                        },
+                        child: Container(
+                          color: Colors.transparent,
+                          child: Center(
+                            child: AnimatedOpacity(
+                              opacity: _controller!.value.isPlaying ? 0.0 : 1.0,
+                              duration: const Duration(milliseconds: 300),
+                              child: Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.5),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  _controller!.value.isPlaying
+                                      ? Icons.pause
+                                      : Icons.play_arrow,
+                                  color: Colors.white,
+                                  size: 50,
                                 ),
                               ),
                             ),
                           ),
                         ),
                       ),
-                  ],
-                ),
+                    ),
+                ],
               ),
+            ),
 
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (widget.isTvSeries) ...[
-                      // ===== SEASON SELECTOR =====
-                      _buildSectionTitle('Select Season'),
-                      const SizedBox(height: 12),
-
-                      _isLoadingSeasons
-                          ? const Center(child: CircularProgressIndicator(color: Colors.yellow))
-                          : _seasons.isEmpty
-                          ? const Text('No seasons available', style: TextStyle(color: Colors.grey))
-                          : Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: _seasons.map((s) {
-                          final isSelected = _selectedSeasonId == s['id'];
-                          return ChoiceChip(
-                            label: Text('Season ${s['seasonNumber']}'),
-                            selected: isSelected,
-                            onSelected: (_) => _fetchEpisodes(s['id']),
-                            selectedColor: Colors.yellow,
-                            backgroundColor: Colors.grey[800],
-                            labelStyle: TextStyle(
-                              color: isSelected ? Colors.black : Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          );
-                        }).toList(),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // ===== EPISODE SELECTOR =====
-                      _buildSectionTitle('Episodes'),
-                      const SizedBox(height: 12),
-
-                      _isLoadingEpisodes
-                          ? const Center(child: CircularProgressIndicator(color: Colors.yellow))
-                          : _episodes.isEmpty
-                          ? const Text('No episodes available', style: TextStyle(color: Colors.grey))
-                          : SizedBox(
-                        height: 100,
-                        child: ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: _episodes.length,
-                          itemBuilder: (context, index) {
-                            final e = _episodes[index];
-                            final isActive = _selectedEpisodeNumber == e['episodeNumber'];
-                            return GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  _selectedEpisodeNumber = e['episodeNumber'];
-                                  _currentEpisodeId = e['id']; // ✅ Update episode
-                                });
-                                _playVideo(e['videoUrl']);
-                                _loadComments(); // ✅ Reload comments
-                              },
-                              child: Container(
-                                width: 110,
-                                margin: const EdgeInsets.only(right: 12),
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: isActive ? Colors.yellow : Colors.grey[800],
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: isActive ? Colors.yellow : Colors.grey[700]!,
-                                    width: 2,
-                                  ),
-                                ),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.play_circle_outline,
-                                      color: isActive ? Colors.black : Colors.white,
-                                      size: 28,
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      'Episode ${e['episodeNumber']}',
-                                      style: TextStyle(
-                                        color: isActive ? Colors.black : Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 12,
-                                      ),
-                                      textAlign: TextAlign.center,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-
-                      const SizedBox(height: 32),
-                    ],
-
-                    // ===== COMMENT SECTION =====
-                    _buildSectionTitle('Comments'),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (widget.isTvSeries) ...[
+                    _buildSectionTitle('Select Season'),
                     const SizedBox(height: 12),
 
-                    Row(
+                    _isLoadingSeasons
+                        ? const Center(child: CircularProgressIndicator(color: Colors.yellow))
+                        : _seasons.isEmpty
+                        ? const Text('No seasons available', style: TextStyle(color: Colors.grey))
+                        : Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: _seasons.map((s) {
+                        final isSelected = _selectedSeasonId == s['id'];
+                        return ChoiceChip(
+                          label: Text('Season ${s['seasonNumber']}'),
+                          selected: isSelected,
+                          onSelected: (_) => _fetchEpisodes(s['id']),
+                          selectedColor: Colors.yellow,
+                          backgroundColor: Colors.grey[800],
+                          labelStyle: TextStyle(
+                            color: isSelected ? Colors.black : Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        );
+                      }).toList(),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    _buildSectionTitle('Episodes'),
+                    const SizedBox(height: 12),
+
+                    _isLoadingEpisodes
+                        ? const Center(child: CircularProgressIndicator(color: Colors.yellow))
+                        : _episodes.isEmpty
+                        ? const Text('No episodes available', style: TextStyle(color: Colors.grey))
+                        : SizedBox(
+                      height: 100,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: _episodes.length,
+                        itemBuilder: (context, index) {
+                          final e = _episodes[index];
+                          final isActive = _selectedEpisodeNumber == e['episodeNumber'];
+                          return GestureDetector(
+                            onTap: () {
+                              print('🎬 Episode ${e['episodeNumber']} selected');
+                              setState(() {
+                                _selectedEpisodeNumber = e['episodeNumber'];
+                                _currentEpisodeId = e['id'];
+                              });
+                              _playVideo(e['videoUrl']);
+                              _loadComments();
+                            },
+                            child: Container(
+                              width: 110,
+                              margin: const EdgeInsets.only(right: 12),
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: isActive ? Colors.yellow : Colors.grey[800],
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: isActive ? Colors.yellow : Colors.grey[700]!,
+                                  width: 2,
+                                ),
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.play_circle_outline,
+                                    color: isActive ? Colors.black : Colors.white,
+                                    size: 28,
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    'Episode ${e['episodeNumber']}',
+                                    style: TextStyle(
+                                      color: isActive ? Colors.black : Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+
+                    const SizedBox(height: 32),
+                  ],
+
+                  _buildSectionTitle('Comments'),
+                  const SizedBox(height: 12),
+
+                  if (_replyToCommentId != null) ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.yellow.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.yellow, width: 1),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.reply, color: Colors.yellow, size: 18),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Replying to @$_replyToUsername',
+                              style: const TextStyle(
+                                color: Colors.yellow,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close, color: Colors.yellow, size: 18),
+                            onPressed: _cancelReply,
+                            constraints: const BoxConstraints(),
+                            padding: EdgeInsets.zero,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+
+                  Container(
+                    key: _commentInputKey,
+                    child: Row(
                       children: [
                         Expanded(
                           child: TextField(
                             controller: _commentController,
                             decoration: InputDecoration(
-                              hintText: 'Add a comment...',
+                              hintText: _replyToCommentId != null
+                                  ? 'Write a reply...'
+                                  : 'Add a comment...',
                               hintStyle: const TextStyle(color: Colors.grey),
                               filled: true,
                               fillColor: Colors.grey[850],
@@ -702,61 +706,63 @@ class _PlayNowScreenState extends State<PlayNowScreen> {
                             foregroundColor: Colors.black,
                             minimumSize: const Size(60, 50),
                           ),
-                          child: const Text('Post', style: TextStyle(fontWeight: FontWeight.bold)),
+                          child: Text(
+                            _replyToCommentId != null ? 'Reply' : 'Post',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
                         ),
                       ],
                     ),
+                  ),
 
-                    const SizedBox(height: 16),
+                  const SizedBox(height: 16),
 
-                    _isLoadingComments
-                        ? const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(20.0),
-                        child: CircularProgressIndicator(color: Colors.yellow),
-                      ),
-                    )
-                        : _comments.isEmpty
-                        ? const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(20.0),
-                        child: Text(
-                          'No comments yet. Be the first to comment!',
-                          style: TextStyle(
-                            color: Colors.grey,
-                            fontSize: 14,
-                            fontStyle: FontStyle.italic,
-                          ),
+                  _isLoadingComments
+                      ? const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(20.0),
+                      child: CircularProgressIndicator(color: Colors.yellow),
+                    ),
+                  )
+                      : _comments.isEmpty
+                      ? const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(20.0),
+                      child: Text(
+                        'No comments yet. Be the first to comment!',
+                        style: TextStyle(
+                          color: Colors.grey,
+                          fontSize: 14,
+                          fontStyle: FontStyle.italic,
                         ),
                       ),
-                    )
-                        : ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: _comments.length,
-                      itemBuilder: (context, index) {
-                        return _buildCommentItem(_comments[index]);
-                      },
                     ),
-                  ],
-                ),
+                  )
+                      : ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _comments.length,
+                    itemBuilder: (context, index) {
+                      return _buildCommentItem(_comments[index]);
+                    },
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  // ✅ Build comment item (hỗ trợ replies)
   Widget _buildCommentItem(Map<String, dynamic> comment, {bool isReply = false}) {
     final isOwner = comment['userId'] == _currentUserId;
     final replies = comment['replies'] as List? ?? [];
 
-    // ✅ Lấy thông tin user
     final displayName = comment['displayName'] ?? comment['username'] ?? 'User';
     final avatarUrl = comment['avatarUrl'];
     final commentText = comment['commentText'] ?? '';
+    final commentId = comment['id'];
 
     return Container(
       margin: EdgeInsets.only(
@@ -777,7 +783,6 @@ class _PlayNowScreenState extends State<PlayNowScreen> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ✅ Avatar
               CircleAvatar(
                 radius: 20,
                 backgroundColor: Colors.yellow,
@@ -814,7 +819,7 @@ class _PlayNowScreenState extends State<PlayNowScreen> {
                         if (isOwner)
                           IconButton(
                             icon: const Icon(Icons.delete, size: 18, color: Colors.red),
-                            onPressed: () => _deleteComment(comment['id']),
+                            onPressed: () => _deleteComment(commentId),
                             constraints: const BoxConstraints(),
                             padding: EdgeInsets.zero,
                           ),
@@ -836,13 +841,44 @@ class _PlayNowScreenState extends State<PlayNowScreen> {
                         height: 1.4,
                       ),
                     ),
+
+                    if (!isReply && _currentUserId != null) ...[
+                      const SizedBox(height: 8),
+                      TextButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            _replyToCommentId = commentId;
+                            _replyToUsername = displayName;
+                          });
+
+                          Future.delayed(const Duration(milliseconds: 100), () {
+                            if (_commentInputKey.currentContext != null) {
+                              Scrollable.ensureVisible(
+                                _commentInputKey.currentContext!,
+                                duration: const Duration(milliseconds: 300),
+                                curve: Curves.easeInOut,
+                              );
+                            }
+                          });
+                        },
+                        icon: const Icon(Icons.reply, size: 16, color: Colors.grey),
+                        label: const Text(
+                          'Reply',
+                          style: TextStyle(color: Colors.grey, fontSize: 13),
+                        ),
+                        style: TextButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          minimumSize: const Size(0, 30),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
             ],
           ),
 
-          // ✅ Hiển thị replies (nếu có)
           if (replies.isNotEmpty) ...[
             const SizedBox(height: 12),
             ...replies.map((reply) => _buildCommentItem(

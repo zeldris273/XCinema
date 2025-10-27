@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../state/WatchListProvider.dart';
 import '../../utils/FormatDate.dart';
 import './PlayNow.dart';
+import './WatchTrailer.dart';
 
 class MovieDetailScreen extends StatefulWidget {
   final Map<String, dynamic> movie;
@@ -272,10 +273,34 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                         ),
                       ),
                       const SizedBox(width: 12),
+
                       Expanded(
                         child: OutlinedButton.icon(
                           onPressed: () {
-                            Navigator.pushNamed(context, '/watchtrailer');
+                            // ✅ Lấy trailerUrl từ movie data
+                            final trailerUrl = widget.movie['trailerUrl'];
+                            print('🎬 Trailer URL in Flutter: ${widget.movie['trailerUrl']}');
+
+
+                            if (trailerUrl != null && trailerUrl.isNotEmpty) {
+                              // ✅ Navigate đến WatchTrailerScreen với URL
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => WatchTrailerScreen(
+                                    youtubeUrl: trailerUrl,
+                                  ),
+                                ),
+                              );
+                            } else {
+                              // ✅ Hiển thị thông báo nếu không có trailer
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('No trailer available for this movie'),
+                                  backgroundColor: Colors.orange,
+                                ),
+                              );
+                            }
                           },
                           icon: const Icon(Icons.videocam_outlined, size: 24),
                           label: const Text(

@@ -4,7 +4,6 @@ import '../utils/ParaUtil.dart';
 import '../utils/TokenStorage.dart';
 
 class CommentService {
-  /// 📜 Lấy danh sách comments
   Future<List<Map<String, dynamic>>> getComments({
     int? movieId,
     int? tvSeriesId,
@@ -30,8 +29,6 @@ class CommentService {
 
       if (response.statusCode == 200 && response.data is List) {
         print('✅ Fetched ${(response.data as List).length} comments');
-        print('📦 Sample comment data: ${response.data.isNotEmpty ? response.data[0] : "empty"}');
-
         return (response.data as List)
             .map((e) => Map<String, dynamic>.from(e))
             .toList();
@@ -43,7 +40,6 @@ class CommentService {
     }
   }
 
-  /// ✍️ Thêm comment mới
   Future<Map<String, dynamic>?> addComment({
     required int userId,
     required String commentText,
@@ -80,7 +76,6 @@ class CommentService {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         print('✅ Comment added successfully');
-        print('📦 Response data: ${response.data}');
         return Map<String, dynamic>.from(response.data);
       }
       return null;
@@ -90,7 +85,6 @@ class CommentService {
     }
   }
 
-  /// ✏️ Cập nhật comment
   Future<bool> updateComment({
     required int commentId,
     required int userId,
@@ -125,7 +119,6 @@ class CommentService {
     }
   }
 
-  /// 🗑️ Xóa comment
   Future<bool> deleteComment({
     required int commentId,
     required int userId,

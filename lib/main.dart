@@ -19,12 +19,12 @@ import 'Authentication/SignUp.dart';
 import 'Authentication/ForgotPassword.dart';
 import 'Authentication/NewPassword.dart';
 import 'Authentication/OtpScreen.dart';
-
-// 📦 Provider
 import 'state/WatchListProvider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+
   runApp(
     ChangeNotifierProvider(
       create: (_) => WatchListProvider(),
