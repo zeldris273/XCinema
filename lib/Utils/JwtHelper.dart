@@ -24,7 +24,7 @@ class JwtHelper {
     final payload = decodeToken(token);
     if (payload == null) return null;
 
-    final userIdString = payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'];
+    final userIdString = payload['sub'];
 
     if (userIdString != null) {
       return int.tryParse(userIdString.toString());
@@ -37,14 +37,14 @@ class JwtHelper {
     final payload = decodeToken(token);
     if (payload == null) return null;
 
-    return payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'];
+    return payload['email'];
   }
 
   static String? getRole(String token) {
     final payload = decodeToken(token);
     if (payload == null) return null;
 
-    return payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
+    return payload['role'];
   }
 
   static bool isExpired(String token) {

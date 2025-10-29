@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 // 📦 Import các màn hình
 import 'screens/MainLayout.dart';
 import 'screens/HomeScreen.dart';
@@ -10,9 +9,7 @@ import 'screens/Search.dart';
 import 'screens/GenresScreen.dart';
 import 'screens/WatchList.dart';
 import 'screens/Profile.dart';
-import 'screens/PlayNow.dart';
 import 'screens/MovieDetail.dart';
-import 'screens/WatchTrailer.dart';
 
 // 📦 Import các màn hình Authentication
 import 'Authentication/SignIn.dart';
@@ -21,15 +18,20 @@ import 'Authentication/ForgotPassword.dart';
 import 'Authentication/NewPassword.dart';
 import 'Authentication/OtpScreen.dart';
 import 'state/WatchListProvider.dart';
+import 'state/MoviesProvider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => WatchListProvider(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => WatchListProvider()),
+        ChangeNotifierProvider(create: (_) => MoviesProvider()),
+      ],
       child: const MyApp(),
     ),
+
   );
 }
 
@@ -62,6 +64,7 @@ class MyApp extends StatelessWidget {
         '/watchlist': (context) => const WatchListScreen(),
         '/profile': (context) => const ProfileScreen(),
         '/genres': (context) => const GenresScreen(),
+
 
         // Auth
         '/SignIn': (context) => const SignInScreen(),

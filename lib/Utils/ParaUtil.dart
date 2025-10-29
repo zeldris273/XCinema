@@ -56,4 +56,9 @@ class ParaUtil{
 
   //rating
   static String submitRating = '/api/ratings';
+
+  //admin
+  static String createMovie = '/api/movies/create';
+  static String updateMovie(int id) => '/api/movies/$id';
+  static String deleteMovie(int id) => '/api/movies/$id';
 }

@@ -1,3 +1,4 @@
+import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class TokenStorage {
@@ -16,5 +17,13 @@ class TokenStorage {
   static Future<void> clearToken() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
+  }
+
+  static Future<String?> checkRole() async {
+    final token = await TokenStorage.getToken();
+    if (token == null) return null;
+
+    final decoded = JwtDecoder.decode(token);
+    return decoded["role"];
   }
 }

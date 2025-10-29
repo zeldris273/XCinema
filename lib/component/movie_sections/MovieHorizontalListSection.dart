@@ -14,9 +14,7 @@ class MovieHorizontalListSection extends StatelessWidget {
     required this.movies,
   });
 
-  // ✅ Fetch full detail trước khi navigate
   Future<void> _navigateToDetail(BuildContext context, Map<String, dynamic> movie) async {
-    // Show loading
     showDialog(
       context: context,
       barrierDismissible: false,

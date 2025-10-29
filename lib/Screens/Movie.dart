@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../services/MovieService.dart';
+import 'package:provider/provider.dart';
+import '../state/MoviesProvider.dart';
 import '../component/MediaCard.dart';
 
 class MoviesScreen extends StatefulWidget {
@@ -10,58 +11,62 @@ class MoviesScreen extends StatefulWidget {
 }
 
 class _MoviesScreenState extends State<MoviesScreen> {
-  List<Map<String, dynamic>> _movies = [];
-  bool _isLoading = true;
-
   @override
   void initState() {
     super.initState();
-    _loadMovies();
+    // ✅ Load phim từ Provider khi khởi động
+    Future.microtask(() => context.read<MoviesProvider>().fetchMovies());
   }
-
-  Future<void> _loadMovies() async {
-    final data = await MovieService().getAllMovies();
-    setState(() {
-      _movies = data;
-      _isLoading = false;
-    });
-  }
-
 
   @override
   Widget build(BuildContext context) {
+    final movieProvider = context.watch<MoviesProvider>();
+    final movies = movieProvider.movies;
+
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
-        title: const Text('Popular Movies',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text(
+          '🎬 Popular Movies',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
+        ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Colors.yellow))
-          : _movies.isEmpty
+
+      body: movieProvider.isLoading
           ? const Center(
-        child: Text('No Movies Found',
-            style: TextStyle(color: Colors.white)),
+        child: CircularProgressIndicator(color: Colors.yellow),
       )
-          : SingleChildScrollView(
+          : movies.isEmpty
+          ? const Center(
+        child: Text(
+          'No Movies Found',
+          style: TextStyle(color: Colors.white70),
+        ),
+      )
+          : RefreshIndicator(
+        color: Colors.yellow,
+        backgroundColor: Colors.black,
+        onRefresh: () => movieProvider.fetchMovies(),
         child: GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
           padding: const EdgeInsets.all(16.0),
-          gridDelegate:
-          const SliverGridDelegateWithFixedCrossAxisCount(
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
             childAspectRatio: 0.7,
             crossAxisSpacing: 10,
             mainAxisSpacing: 10,
           ),
-          itemCount: _movies.length,
+          itemCount: movies.length,
           itemBuilder: (context, index) {
-            return MediaCard(item :_movies[index]);
+            final movie = movies[index];
+            return MediaCard(item: movie);
           },
         ),
-      )
+      ),
     );
   }
 }
