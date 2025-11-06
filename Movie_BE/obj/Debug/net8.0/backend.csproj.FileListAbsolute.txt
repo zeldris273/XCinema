@@ -730,3 +730,7 @@ D:\XCinema\Movie_BE\obj\Debug\net8.0\backend.genruntimeconfig.cache
 D:\XCinema\Movie_BE\obj\Debug\net8.0\ref\backend.dll
 D:\XCinema\Movie_BE\bin\Debug\net8.0\Npgsql.dll
 D:\XCinema\Movie_BE\bin\Debug\net8.0\Npgsql.EntityFrameworkCore.PostgreSQL.dll
+D:\XCinema\Movie_BE\bin\Debug\net8.0\Microsoft.Extensions.Diagnostics.Abstractions.dll
+D:\XCinema\Movie_BE\bin\Debug\net8.0\Microsoft.Extensions.Hosting.Abstractions.dll
+D:\XCinema\Movie_BE\bin\Debug\net8.0\Microsoft.Extensions.ObjectPool.dll
+D:\XCinema\Movie_BE\bin\Debug\net8.0\System.Net.WebSockets.WebSocketProtocol.dll

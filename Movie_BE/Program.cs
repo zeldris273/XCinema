@@ -1,5 +1,6 @@
 using Amazon.S3;
 using backend.Data;
+using backend.Hubs;
 using backend.Services;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -126,6 +127,8 @@ builder.Services.AddAuthentication(options =>
     options.SignInScheme = IdentityConstants.ExternalScheme;
 });
 
+builder.Services.AddSignalR();
+
 // Thêm CORS
 builder.Services.AddCors(options =>
 {
@@ -168,6 +171,7 @@ using (var scope = app.Services.CreateScope())
 app.UseRouting();
 // CORS must be placed after UseRouting and before auth
 app.UseCors("AllowFrontend");
+app.MapHub<WatchPartyHub>("/watchpartyhub").RequireCors("AllowFrontend");
 
 app.UseAuthentication();
 app.UseAuthorization();

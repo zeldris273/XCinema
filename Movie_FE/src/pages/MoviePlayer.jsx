@@ -88,10 +88,7 @@ const MoviePlayer = () => {
     if (token) {
       try {
         const decoded = jwtDecode(token);
-        const userId =
-          decoded[
-            "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"
-          ];
+        const userId = decoded["sub"];
         setCurrentUserId(parseInt(userId, 10));
       } catch (err) {
         console.error("Error decoding token:", err);
