@@ -110,10 +110,7 @@ const AdminDashboard = () => {
     if (token) {
       try {
         const decoded = jwtDecode(token);
-        const adminRole =
-          decoded[
-            "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
-          ] === "Admin";
+        const adminRole = decoded["role"] === "Admin";
         setIsAdmin(adminRole);
         if (!adminRole) {
           customSwal(

@@ -9,7 +9,7 @@ import Watchlist from "../pages/Watchlist";
 import MoviePlayer from "../pages/MoviePlayer";
 import AdminDashboard from "../pages/AdminDashboard";
 import NotFoundPage from "../pages/NotFoundPage";
-import AccountPage from "../pages/AccountPage";
+import ProfilePage from "../pages/ProfilePage";
 import GenrePage from "../pages/GenrePage";
 
 const router = createBrowserRouter([
@@ -67,7 +67,7 @@ const router = createBrowserRouter([
       },
       {
         path: "user/profile",
-        element: <AccountPage />,
+        element: <ProfilePage />,
       },
       {
         path: "*",

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "../api/api.jsx";
-import { useUserProfile } from "../hooks/useUserProfile";
+import { useUserProfile } from "../hooks/useUserProfile.jsx";
 
 export default function AccountPage() {
   const [avatar, setAvatar] = useState(null);

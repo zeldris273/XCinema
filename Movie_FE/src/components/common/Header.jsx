@@ -47,11 +47,7 @@ const Header = () => {
     if (token) {
       try {
         const decodedToken = jwtDecode(token);
-        setIsAdmin(
-          decodedToken[
-            "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
-          ] === "Admin"
-        );
+        setIsAdmin(decodedToken["role"] === "Admin");
       } catch (error) {
         console.error("Invalid token:", error);
       }

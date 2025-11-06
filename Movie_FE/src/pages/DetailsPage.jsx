@@ -76,10 +76,7 @@ const DetailsPage = () => {
     if (token) {
       try {
         const decoded = jwtDecode(token);
-        const role =
-          decoded[
-            "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
-          ];
+        const role = decoded["role"];
         setIsAdmin(role === "Admin");
         setIsUser(role === "User");
 

@@ -83,10 +83,6 @@ namespace Movie_BE.Controllers
                     .Take(limit)
                     .ToList();
 
-                // ✅ Logging để debug (tùy chọn)
-                Console.WriteLine($"Movies found: {movieList.Count}, TV Series found: {tvList.Count}");
-                Console.WriteLine($"Returning {releases.Count} items (limit={limit}, offset={offset})");
-
                 return Ok(new
                 {
                     Data = releases,

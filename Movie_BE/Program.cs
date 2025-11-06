@@ -14,10 +14,14 @@ using Microsoft.AspNetCore.Http.Features;
 using Movie_BE.Services;
 using Microsoft.AspNetCore.Identity;
 using backend.Models;
+using System.IdentityModel.Tokens.Jwt;
 
 
 
 var builder = WebApplication.CreateBuilder(args);
+
+JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
+JwtSecurityTokenHandler.DefaultOutboundClaimTypeMap.Clear();
 
 // Tăng giới hạn kích thước request body (2GB)
 builder.Services.Configure<IISServerOptions>(options =>
@@ -156,60 +160,7 @@ using (var scope = app.Services.CreateScope())
         if (!await roleManager.RoleExistsAsync(role))
         {
             var result = await roleManager.CreateAsync(new IdentityRole<int> { Name = role, NormalizedName = role.ToUpper() });
-            if (result.Succeeded)
-            {
-                Console.WriteLine($"Role '{role}' đã được tạo thành công.");
-            }
-            else
-            {
-                Console.WriteLine($"Không thể tạo role '{role}': {string.Join(", ", result.Errors.Select(e => e.Description))}");
-            }
         }
-        else
-        {
-            Console.WriteLine($"Role '{role}' đã tồn tại.");
-        }
-    }
-
-    // DEBUG: In ra tất cả roles
-    var allRoles = roleManager.Roles.ToList();
-    Console.WriteLine("=== ALL ROLES ===");
-    foreach (var role in allRoles)
-    {
-        Console.WriteLine($"Role ID: {role.Id}, Name: {role.Name}, NormalizedName: {role.NormalizedName}");
-    }
-
-    // DEBUG: Kiểm tra user có email cụ thể
-    var testUser = await userManager.FindByEmailAsync("zeldris.273@gmail.com");
-    if (testUser != null)
-    {
-        Console.WriteLine($"=== USER INFO ===");
-        Console.WriteLine($"User ID: {testUser.Id}, Email: {testUser.Email}");
-
-        var userRoles = await userManager.GetRolesAsync(testUser);
-        Console.WriteLine($"User Roles: {string.Join(", ", userRoles)}");
-
-        // Nếu user chưa có role Admin, gán cho user
-        if (!userRoles.Contains("Admin"))
-        {
-            var addRoleResult = await userManager.AddToRoleAsync(testUser, "Admin");
-            if (addRoleResult.Succeeded)
-            {
-                Console.WriteLine("Đã gán role Admin cho user thành công!");
-
-                // Kiểm tra lại
-                var updatedRoles = await userManager.GetRolesAsync(testUser);
-                Console.WriteLine($"Updated User Roles: {string.Join(", ", updatedRoles)}");
-            }
-            else
-            {
-                Console.WriteLine($"Lỗi khi gán role: {string.Join(", ", addRoleResult.Errors.Select(e => e.Description))}");
-            }
-        }
-    }
-    else
-    {
-        Console.WriteLine("Không tìm thấy user với email zeldris.273@gmail.com");
     }
 }
 

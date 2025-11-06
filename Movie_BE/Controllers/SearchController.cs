@@ -25,11 +25,6 @@ namespace backend.Controllers
         {
             try
             {
-                if (string.IsNullOrWhiteSpace(query) && genre == null && year == null && minRating == null)
-                {
-                    return BadRequest(new { message = "Vui lòng nhập từ khóa hoặc chọn bộ lọc." });
-                }
-
                 // Movies
                 var movies = _context.Movies.AsQueryable();
                 if (!string.IsNullOrEmpty(query))
@@ -44,18 +39,7 @@ namespace backend.Controllers
                         EF.Functions.ToTsVector("english", (m.Title ?? string.Empty) + " " + (m.Overview ?? string.Empty))
                             .Matches(EF.Functions.ToTsQuery("english", tsQueryString)));
                 }
-                if (!string.IsNullOrEmpty(genre))
-                {
-                    movies = movies
-                        .Include(m => m.MovieGenres)
-                        .ThenInclude(mg => mg.Genre)
-                        .Where(m => m.MovieGenres.Any(mg => mg.Genre.Name.ToLower().Contains(genre.ToLower())));
-                }
 
-                if (year.HasValue)
-                    movies = movies.Where(m => m.ReleaseDate.HasValue && m.ReleaseDate.Value.Year == year.Value);
-                if (minRating.HasValue)
-                    movies = movies.Where(m => m.Rating >= (decimal)minRating.Value);
 
                 var moviesQuery = movies.Select(m => new SearchResultDTO
                 {
@@ -81,18 +65,6 @@ namespace backend.Controllers
                         EF.Functions.ToTsVector("english", (t.Title ?? string.Empty) + " " + (t.Overview ?? string.Empty))
                             .Matches(EF.Functions.ToTsQuery("english", tsQueryString)));
                 }
-                if (!string.IsNullOrEmpty(genre))
-                {
-                    tv = tv
-                        .Include(t => t.TvSeriesGenres)
-                        .ThenInclude(tg => tg.Genre)
-                        .Where(t => t.TvSeriesGenres.Any(tg => tg.Genre.Name.ToLower().Contains(genre.ToLower())));
-                }
-
-                if (year.HasValue)
-                    tv = tv.Where(t => t.ReleaseDate.HasValue && t.ReleaseDate.Value.Year == year.Value);
-                if (minRating.HasValue)
-                    tv = tv.Where(t => t.Rating >= (decimal)minRating.Value);
 
                 var tvSeriesQuery = tv.Select(t => new SearchResultDTO
                 {

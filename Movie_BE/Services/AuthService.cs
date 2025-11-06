@@ -84,19 +84,18 @@ namespace backend.Services
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-            // Lấy một role duy nhất cho user (ưu tiên Admin)
             var roles = await _userManager.GetRolesAsync(user);
             var primaryRole = roles.Contains("User") ? "User" : roles.FirstOrDefault();
 
             var claims = new List<Claim>
             {
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Email, user.Email),
+                new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+                new Claim(JwtRegisteredClaimNames.Email, user.Email),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
             if (!string.IsNullOrEmpty(primaryRole))
             {
-                claims.Add(new Claim(ClaimTypes.Role, primaryRole));
+                claims.Add(new Claim("role", primaryRole));
             }
 
             var token = new JwtSecurityToken(
@@ -115,9 +114,8 @@ namespace backend.Services
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:RefreshKey"]));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-            // Lấy một role duy nhất cho user (ưu tiên Admin)
             var roles = await _userManager.GetRolesAsync(user);
-            var primaryRole = roles.Contains("Admin") ? "Admin" : roles.FirstOrDefault();
+            var primaryRole = roles.Contains("User") ? "User" : roles.FirstOrDefault();
 
             var claims = new List<Claim>
             {

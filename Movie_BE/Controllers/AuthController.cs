@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Hosting;
 using backend.DTOs;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 
 namespace backend.Controllers
 {
@@ -13,14 +14,17 @@ namespace backend.Controllers
     public class AuthController : ControllerBase
     {
         private readonly AuthService _authService;
+        private readonly UserManager<CustomUser> _userManager;
+
         private readonly SignInManager<CustomUser> _signInManager;
         private readonly IWebHostEnvironment _env;
         private readonly S3Service _s3Service;
 
-        public AuthController(AuthService authService, SignInManager<CustomUser> signInManager, IWebHostEnvironment env, S3Service s3Service)
+        public AuthController(AuthService authService, UserManager<CustomUser> userManager, SignInManager<CustomUser> signInManager, IWebHostEnvironment env, S3Service s3Service)
         {
             _signInManager = signInManager;
             _authService = authService;
+            _userManager = userManager;
             _env = env;
             _s3Service = s3Service;
         }
@@ -55,15 +59,30 @@ namespace backend.Controllers
             return Ok("Logged out successfully. Please clear your tokens on the client side.");
         }
 
+        [HttpGet("email-exists")]
+        public async Task<bool> EmailExists(string email)
+        {
+            return await _userManager.Users.AnyAsync(u => u.Email == email);
+        }
+
+
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterRequest request)
         {
+            if (string.IsNullOrWhiteSpace(request.Email) || !request.Email.Contains("@"))
+                return BadRequest("Invalid email format");
+
+            var exists = await _authService.EmailExists(request.Email);
+            if (exists)
+                return BadRequest("Email already registered");
+
             var otpSent = await _authService.SendOtp(request.Email);
             if (!otpSent)
                 return BadRequest("Failed to send OTP");
 
             return Ok("OTP sent to your email. Please verify to complete registration.");
         }
+
 
         [HttpPost("send-otp")]
         public async Task<IActionResult> SendOtp([FromBody] SendOtpRequest request)
