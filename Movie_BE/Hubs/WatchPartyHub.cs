@@ -35,5 +35,24 @@ namespace backend.Hubs
             await Clients.OthersInGroup(roomId)
                 .SendAsync("ReceiveSeek", time);
         }
+
+        public async Task SyncSkipForward(string roomId)
+        {
+            await Clients.OthersInGroup(roomId)
+                .SendAsync("ReceiveSkipForward");
+        }
+
+        public async Task SyncSkipBackward(string roomId)
+        {
+            await Clients.OthersInGroup(roomId)
+                .SendAsync("ReceiveSkipBackward");
+        }
+
+        public async Task EndWatchParty(string roomId)
+        {
+            await Clients.Group(roomId).SendAsync("ReceiveEndSession");
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, roomId);
+        }
+
     }
 }

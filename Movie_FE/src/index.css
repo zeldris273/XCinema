@@ -21,3 +21,14 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* Ẩn scrollbar trên toàn bộ trang */
+html, body {
+  scrollbar-width: none; 
+  -ms-overflow-style: none; 
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
+}

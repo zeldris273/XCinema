@@ -1,30 +1,39 @@
-import { Outlet } from 'react-router-dom';
-import './App.css';
-import Header from './components/common/Header';
-import Footer from './components/common/Footer';
-import MobileNavigation from './components/MobileNavigation';
-import Chatbot from './features/Chatbot'
-import { useState } from 'react';
-import chatbotIcon from './assets/chatbot.png';
+import { Outlet, useLocation } from "react-router-dom";
+import "./App.css";
+import Header from "./components/common/Header";
+import Footer from "./components/common/Footer";
+import MobileNavigation from "./components/MobileNavigation";
+import Chatbot from "./features/Chatbot";
+import { useState } from "react";
+import chatbotIcon from "./assets/chatbot.png";
 function App() {
   const [isChatbotOpen, setIsChatbotOpen] = useState(false);
+  const location = useLocation();
+
+  const noHeaderRoutes = ["/watch-party"];
+
+  const hideHeader = noHeaderRoutes.includes(location.pathname);
 
   return (
     <main className="pb-14 lg:bg-0">
-      <Header />
+      {!hideHeader && <Header />}
+
       <div className="min-h-[90vh]">
         <Outlet />
       </div>
-      <Footer />
+
+      {!hideHeader && <Footer />}
       <MobileNavigation />
 
       {/* Nút nổi để mở chatbot */}
-      <button
-        onClick={() => setIsChatbotOpen(!isChatbotOpen)}
-        className="fixed bottom-20 right-5 bg-yellow-500 text-white p-4 rounded-full shadow-lg hover:bg-yellow-600 focus:outline-none z-50"
-      >
-        <img src={chatbotIcon} alt="Chatbot Icon" className="w-6 h-6" />
-      </button>
+      {!hideHeader && (
+        <button
+          onClick={() => setIsChatbotOpen(!isChatbotOpen)}
+          className="fixed bottom-20 right-5 bg-yellow-500 text-white p-4 rounded-full shadow-lg hover:bg-yellow-600 focus:outline-none z-50"
+        >
+          <img src={chatbotIcon} alt="Chatbot Icon" className="w-6 h-6" />
+        </button>
+      )}
 
       {/* Khung chat nhỏ cố định */}
       {isChatbotOpen && (
