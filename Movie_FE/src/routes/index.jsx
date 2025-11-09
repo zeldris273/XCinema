@@ -12,6 +12,7 @@ import NotFoundPage from "../pages/NotFoundPage";
 import ProfilePage from "../pages/ProfilePage";
 import GenrePage from "../pages/GenrePage";
 import WatchPartyPage from "../pages/WatchPartyPage";
+import CreateRoom from "../pages/CreateRoom";
 
 const router = createBrowserRouter([
   {
@@ -46,8 +47,9 @@ const router = createBrowserRouter([
         path: "tvseries/:id/:title/episode/:episodeNumber/watch",
         element: <MoviePlayer />,
       },
+      { path: "create-room", element: <CreateRoom /> },
       {
-        path: "watch-party",
+        path: "watch-party/:id",
         element: <WatchPartyPage />,
       },
       {

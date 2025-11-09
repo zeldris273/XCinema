@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
-import { mobileNavigation } from "../constants/navigation";
-import MobileGenresModal from "../components/frame/MobileGenresModal";
-import api from "../api/api";
+import { mobileNavigation } from "../../constants/navigation";
+import MobileGenresModal from "./MobileGenresModal";
+import api from "../../api/api";
 
 const MobileNavigation = () => {
   const [isGenresOpen, setIsGenresOpen] = useState(false);

@@ -5,12 +5,25 @@ namespace backend.Hubs
 {
     public class WatchPartyHub : Hub
     {
+        private static readonly HashSet<string> ActiveRooms = new();
+
         public async Task JoinRoom(string roomId)
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, roomId);
             await Clients.Group(roomId)
                 .SendAsync("ReceiveChat", "System", $"A new user joined room {roomId}");
+
+            if (ActiveRooms.Contains(roomId))
+            {
+                await Clients.Caller.SendAsync("ReceiveStartSession");
+            }
         }
+
+        public async Task StartSession(string roomId)
+        {
+            await Clients.Group(roomId).SendAsync("ReceiveStartSession");
+        }
+
 
         public async Task SendChat(string roomId, string user, string message)
         {
@@ -48,7 +61,7 @@ namespace backend.Hubs
                 .SendAsync("ReceiveSkipBackward");
         }
 
-        public async Task EndWatchParty(string roomId)
+        public async Task EndSession(string roomId)
         {
             await Clients.Group(roomId).SendAsync("ReceiveEndSession");
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, roomId);

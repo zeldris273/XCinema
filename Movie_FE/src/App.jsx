@@ -2,7 +2,7 @@ import { Outlet, useLocation } from "react-router-dom";
 import "./App.css";
 import Header from "./components/common/Header";
 import Footer from "./components/common/Footer";
-import MobileNavigation from "./components/MobileNavigation";
+import MobileNavigation from "./components/mobile/MobileNavigation";
 import Chatbot from "./features/Chatbot";
 import { useState } from "react";
 import chatbotIcon from "./assets/chatbot.png";
@@ -12,8 +12,9 @@ function App() {
 
   const noHeaderRoutes = ["/watch-party"];
 
-  const hideHeader = noHeaderRoutes.includes(location.pathname);
-
+  const hideHeader = noHeaderRoutes.some((path) =>
+    location.pathname.startsWith(path)
+  );
   return (
     <main className="pb-14 lg:bg-0">
       {!hideHeader && <Header />}
