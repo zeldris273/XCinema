@@ -11,10 +11,12 @@ namespace backend.DTOs
         public int SeasonNumber { get; set; }
     }
 
-     public class SeasonResponseDTO
+    public class SeasonResponseDTO
     {
         public int Id { get; set; }
         public int TvSeriesId { get; set; }
         public int SeasonNumber { get; set; }
+
+        public string? BackdropUrl { get; set; }
     }
 }

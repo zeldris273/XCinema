@@ -49,7 +49,7 @@ const router = createBrowserRouter([
       },
       { path: "create-room", element: <CreateRoom /> },
       {
-        path: "watch-party/:id",
+        path: "watch-party",
         element: <WatchPartyPage />,
       },
       {

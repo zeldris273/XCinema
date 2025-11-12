@@ -1,25 +1,59 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import * as signalR from "@microsoft/signalr";
+import api from "../api/api.jsx";
 import Hls from "hls.js";
 import { BsToggleOff } from "react-icons/bs";
-import { FaStop, FaArrowLeft } from "react-icons/fa";
 import { PiVideoCameraSlashFill } from "react-icons/pi";
+import { FaArrowLeft } from "react-icons/fa";
+import { jwtDecode } from "jwt-decode";
+
 import VideoPartyFrame from "../components/frame/VideoPartyFrame.jsx";
 import ChatBox from "../components/watch-party/ChatBox.jsx";
-import HostInforBar from "../components/watch-party/HostInfoBar.jsx";
 import HostInfoBar from "../components/watch-party/HostInfoBar.jsx";
-import { useNavigate } from "react-router-dom";
 import MovieInfo from "../components/watch-party/MovieInfo.jsx";
+import timeAgo from "../utils/timeAgo.js";
 import customSwal from "../utils/customSwal.js";
 
 const WatchParty = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const query = new URLSearchParams(location.search);
+
+  // 🧩 Params
+  const roomId = query.get("roomId");
+  let currentUser;
+  try {
+    const token = localStorage.getItem("accessToken");
+    if (token) {
+      const decoded = jwtDecode(token);
+      currentUser = decoded.sub;
+    }
+  } catch {
+    console.error("❌ Token decode error:", err);
+  }
+
+  if (!currentUser) {
+    // Kiểm tra xem đã có guestId trong localStorage chưa
+    let guestId = localStorage.getItem("guestId");
+    if (!guestId) {
+      guestId = `Guest-${Math.floor(100000 + Math.random() * 900000)}`; // VD: Guest-482901
+      localStorage.setItem("guestId", guestId);
+    }
+    currentUser = guestId;
+  }
+
+  // ⚙️ State
   const [connection, setConnection] = useState(null);
+  const [isConnected, setIsConnected] = useState(false);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
-  const [isConnected, setIsConnected] = useState(false);
+  const [isHost, setIsHost] = useState(false);
   const [sessionStarted, setSessionStarted] = useState(false);
-  const [isHost] = useState(true);
+  const [viewerCount, setViewerCount] = useState(1);
+  const [hostInfo, setHostInfo] = useState({ hostUserId: "", createdAt: "" });
 
+  // Video state
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -33,34 +67,20 @@ const WatchParty = () => {
   const [settingsTab, setSettingsTab] = useState("quality");
   const [isChatHidden, setIsChatHidden] = useState(false);
 
-  const containerRef = useRef(null);
+  const [userProfile, setUserProfile] = useState({
+    displayName: "",
+    email: "",
+    avatarUrl: "",
+  });
+
+  // Refs
   const videoRef = useRef(null);
+  const containerRef = useRef(null);
   const controlsTimeoutRef = useRef(null);
-  const settingsMenuTimeoutRef = useRef(null);
 
-  const navigate = useNavigate();
-
-  const roomId = "room123";
-  const [currentUser] = useState(`User${Math.floor(Math.random() * 1000)}`);
-
-  useEffect(() => {
-    const saved = localStorage.getItem("sessionStarted");
-    if (saved === "true") {
-      console.log("🟢 Khôi phục buổi xem từ localStorage");
-      setSessionStarted(true);
-
-      // Chờ một chút cho video mount xong rồi phát
-      setTimeout(() => {
-        const video = videoRef.current;
-        if (video) {
-          video.play().catch(() => console.log("Autoplay bị chặn"));
-          setIsPlaying(true);
-        }
-      }, 500);
-    }
-  }, []);
-
-  // ===================== SignalR Connection =====================
+  // ======================================================
+  // 🧠 SignalR
+  // ======================================================
   useEffect(() => {
     const connect = new signalR.HubConnectionBuilder()
       .withUrl(import.meta.env.VITE_HUB_URL)
@@ -69,23 +89,25 @@ const WatchParty = () => {
 
     connect
       .start()
-      .then(() => {
+      .then(async () => {
         console.log("✅ Connected to SignalR Hub");
         setConnection(connect);
         setIsConnected(true);
-        connect.invoke("JoinRoom", roomId);
+        await connect.invoke("JoinRoom", roomId, currentUser);
       })
       .catch((err) => console.error("SignalR connection error:", err));
 
-    connect.on("ReceiveChat", (user, message) => {
-      setMessages((prev) => [...prev, { user, text: message }]);
-    });
+    // Chat
+    connect.on("ReceiveChat", (user, message) =>
+      setMessages((prev) => [...prev, { user, text: message }])
+    );
 
+    // Play / Pause
     connect.on("ReceivePlay", (time) => {
       const video = videoRef.current;
       if (video) {
         video.currentTime = time;
-        video.play();
+        video.play().catch(() => {});
         setIsPlaying(true);
       }
     });
@@ -99,6 +121,7 @@ const WatchParty = () => {
       }
     });
 
+    // Seek
     connect.on("ReceiveSeek", (time) => {
       const video = videoRef.current;
       if (video) {
@@ -107,6 +130,7 @@ const WatchParty = () => {
       }
     });
 
+    // Skip
     connect.on("ReceiveSkipForward", () => {
       const video = videoRef.current;
       if (video && duration) {
@@ -115,7 +139,6 @@ const WatchParty = () => {
         setCurrentTime(newTime);
       }
     });
-
     connect.on("ReceiveSkipBackward", () => {
       const video = videoRef.current;
       if (video) {
@@ -125,92 +148,93 @@ const WatchParty = () => {
       }
     });
 
-    // Khi host bắt đầu buổi xem chung
+    // Session start / end
     connect.on("ReceiveStartSession", () => {
-      console.log("Buổi xem chung đã bắt đầu!");
+      console.log("🎥 Session started!");
       setSessionStarted(true);
+      const video = videoRef.current;
+      if (video) video.play().catch(() => {});
+      setIsPlaying(true);
     });
 
-    // Khi host kết thúc
     connect.on("ReceiveEndSession", () => {
+      console.log("🎬 Session ended!");
       const video = videoRef.current;
       if (video) video.pause();
-      setIsPlaying(false);
       setSessionStarted(false);
-      customSwal("The watch party is over!!", "See you soon!", "info");
+      setIsPlaying(false);
+      customSwal("The watch party has ended!", "See you soon!", "info").then(
+        () => navigate("/")
+      );
     });
 
-    return () => {
-      connect.stop();
-    };
+    connect.on(
+      "JoinedRoom",
+      (
+        roomId,
+        isHostFromServer,
+        hostUserId,
+        hostDisplayName,
+        hostAvatarUrl,
+        createdAt,
+        count
+      ) => {
+        setIsHost(isHostFromServer);
+        setHostInfo({
+          hostUserId,
+          hostDisplayName,
+          hostAvatar: hostAvatarUrl,
+          createdAt,
+        });
+        setViewerCount(count || 1);
+        console.log(
+          `👤 Host Profile: ${hostDisplayName}, Avatar: ${hostAvatarUrl}`
+        );
+      }
+    );
+
+    connect.on("ViewerCountUpdated", (count) => {
+      setViewerCount(count);
+    });
+
+    return () => connect.stop();
   }, [duration]);
 
-  // ===================== HLS Setup =====================
+  // ======================================================
+  // 🎞️ Video HLS
+  // ======================================================
   useEffect(() => {
     const video = videoRef.current;
+    if (!video) return;
+
     const videoUrl =
       "https://d2az2ylwxkh7fk.cloudfront.net/tvseries/Solo+Leveling/season-1/episode-2/master.m3u8";
 
-    if (!video) return;
     let hls;
-
     if (video.canPlayType("application/vnd.apple.mpegurl")) {
       video.src = videoUrl;
     } else if (Hls.isSupported()) {
       hls = new Hls();
       hls.loadSource(videoUrl);
       hls.attachMedia(video);
-      hls.on(Hls.Events.MANIFEST_PARSED, (_, data) => {
-        setQualityLevels(data.levels || []);
-      });
-      video.hls = hls;
-    }
-
-    if (sessionStarted) {
-      setTimeout(() => {
-        if (video.readyState >= 2) {
-          video.play().catch(() => console.log("Autoplay bị chặn"));
-          setIsPlaying(true);
-        } else {
-          video.oncanplay = () => {
-            video.play().catch(() => console.log("Autoplay bị chặn"));
-            setIsPlaying(true);
-          };
-        }
-      }, 400);
+      hls.on(Hls.Events.MANIFEST_PARSED, (_, data) =>
+        setQualityLevels(data.levels || [])
+      );
+      hls.on(Hls.Events.ERROR, (_, data) =>
+        console.error("🚨 HLS Error:", data)
+      );
     }
 
     video.onloadedmetadata = () => setDuration(video.duration);
     video.ontimeupdate = () => setCurrentTime(video.currentTime);
     video.onended = () => setIsPlaying(false);
 
-    return () => {
-      if (hls) hls.destroy();
-    };
-  }, []);
+    return () => hls && hls.destroy();
+  }, [sessionStarted]);
 
-  // ===================== Helpers =====================
-  const formatTime = (time) => {
-    if (!time || isNaN(time)) return "0:00";
-    const minutes = Math.floor(time / 60);
-    const seconds = Math.floor(time % 60);
-    return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
-  };
-
-  // ===================== Chat =====================
-  const handleSend = async () => {
-    if (!input.trim() || !connection) return;
-    await connection.invoke("SendChat", roomId, currentUser, input);
-    setInput("");
-  };
-  const handleKeyPress = (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
-
-  // ===================== Video Controls =====================
+  // ======================================================
+  // 🎬 Video controls
+  // ======================================================
   const handlePlayPause = async () => {
     const video = videoRef.current;
     if (!video || !connection) return;
@@ -218,7 +242,7 @@ const WatchParty = () => {
       video.pause();
       await connection.invoke("SyncPause", roomId, video.currentTime);
     } else {
-      await video.play();
+      await video.play().catch(() => {});
       await connection.invoke("SyncPlay", roomId, video.currentTime);
     }
     setIsPlaying(!isPlaying);
@@ -265,54 +289,18 @@ const WatchParty = () => {
     }
   };
 
-  const handlePlaybackRateChange = (rate) => {
-    const video = videoRef.current;
-    video.playbackRate = rate;
-    setPlaybackRate(rate);
-    setShowSettingsMenu(false);
-  };
-
-  const handleQualityChange = (level) => {
-    const hls = videoRef.current?.hls;
-    if (hls && typeof level === "number") {
-      hls.currentLevel = level;
-      setSelectedQuality(level);
-      setShowSettingsMenu(false);
-    }
-  };
-
-  const handleMouseMove = () => {
-    setShowControls(true);
-    if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
-    controlsTimeoutRef.current = setTimeout(() => {
-      if (isPlaying && !showSettingsMenu) setShowControls(false);
-    }, 3000);
-  };
-
-  // ===================== Host Actions =====================
+  // ======================================================
+  // 🧩 Host actions
+  // ======================================================
   const handleStartSession = async () => {
-    if (connection) {
+    if (connection && isHost) {
       await connection.invoke("StartSession", roomId);
-      console.log("✅ Nhận được tín hiệu bắt đầu xem!");
-
       setSessionStarted(true);
-      localStorage.setItem("sessionStarted", "true");
-
-      const video = videoRef.current;
-      if (video) {
-        try {
-          await video.play();
-          await connection.invoke("SyncPlay", roomId, video.currentTime);
-          setIsPlaying(true);
-        } catch (err) {
-          console.error("Không thể tự động phát video:", err);
-        }
-      }
     }
   };
 
   const handleEndSession = async () => {
-    if (connection) {
+    if (connection && isHost) {
       await connection.invoke("EndSession", roomId);
       setSessionStarted(false);
       const video = videoRef.current;
@@ -320,34 +308,44 @@ const WatchParty = () => {
     }
   };
 
-  // ===================== JSX =====================
+  // ======================================================
+  // 🧾 Chat
+  // ======================================================
+  const handleSend = async () => {
+    if (!input.trim() || !connection) return;
+    await connection.invoke("SendChat", roomId, currentUser, input);
+    setInput("");
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  // ======================================================
+  // 🖥️ JSX
+  // ======================================================
   return (
     <div className="flex min-h-screen bg-black text-white overflow-hidden">
-      {/* LEFT SIDE */}
       <div className="flex flex-col flex-1">
         {/* Header */}
         <div className="bg-black border-b border-neutral-800 px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => navigate(-1)}
-                className="p-2 rounded-full hover:bg-neutral-800 transition"
-              >
-                <FaArrowLeft className="text-gray-300 text-lg hover:text-white" />
-              </button>
-
-              <span className="bg-red-600 text-white text-xs font-bold px-3 py-1 rounded flex items-center gap-2">
-                <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>{" "}
-                LIVE
-              </span>
-              <div>
-                <h1 className="text-lg font-semibold">
-                  Let's Watch Nhật Quyền Nhân Together!
-                </h1>
-                <p className="text-sm text-gray-400">
-                  Season 3 - Episode 1 • Nhật Quyền Nhân
-                </p>
-              </div>
+            <button
+              onClick={() => navigate(-1)}
+              className="p-2 rounded-full hover:bg-neutral-800 transition"
+            >
+              <FaArrowLeft className="text-gray-300 text-lg hover:text-white" />
+            </button>
+            <span className="bg-red-600 text-white text-xs font-bold px-3 py-1 rounded flex items-center gap-2">
+              <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+              LIVE
+            </span>
+            <div>
+              <h1 className="text-lg font-semibold">Watch Party Room</h1>
+              <p className="text-sm text-gray-400">Room ID: {roomId}</p>
             </div>
           </div>
 
@@ -357,8 +355,17 @@ const WatchParty = () => {
                 onClick={() => setIsChatHidden(false)}
                 className="flex items-center gap-2 bg-neutral-900 border border-neutral-700 hover:bg-neutral-800 px-3 py-1.5 rounded-lg text-gray-200 transition"
               >
-                <span className="text-sm">Hiện</span>
+                <span className="text-sm">Show Chat</span>
                 <BsToggleOff className="text-xl text-yellow-500" />
+              </button>
+            )}
+
+            {isHost && !sessionStarted && (
+              <button
+                onClick={handleStartSession}
+                className="flex items-center gap-2 bg-yellow-400 hover:bg-yellow-500 text-black px-5 py-2.5 rounded-full transition font-semibold shadow-lg"
+              >
+                ▶ Start
               </button>
             )}
 
@@ -380,7 +387,11 @@ const WatchParty = () => {
           showControls={showControls}
           currentTime={currentTime}
           duration={duration}
-          formatTime={formatTime}
+          formatTime={(t) =>
+            `${Math.floor(t / 60)}:${Math.floor(t % 60)
+              .toString()
+              .padStart(2, "0")}`
+          }
           handleSeek={handleSeek}
           handlePlayPause={handlePlayPause}
           isPlaying={isPlaying}
@@ -392,26 +403,30 @@ const WatchParty = () => {
           setShowSettingsMenu={setShowSettingsMenu}
           settingsTab={settingsTab}
           setSettingsTab={setSettingsTab}
-          handleQualityChange={handleQualityChange}
+          handleQualityChange={(q) => setSelectedQuality(q)}
           qualityLevels={qualityLevels}
           selectedQuality={selectedQuality}
-          handlePlaybackRateChange={handlePlaybackRateChange}
           playbackRate={playbackRate}
           toggleFullScreen={toggleFullScreen}
           isFullScreen={isFullScreen}
-          handleMouseMove={handleMouseMove}
+          handleMouseMove={() => {
+            setShowControls(true);
+            clearTimeout(controlsTimeoutRef.current);
+            controlsTimeoutRef.current = setTimeout(() => {
+              if (isPlaying && !showSettingsMenu) setShowControls(false);
+            }, 3000);
+          }}
           sessionStarted={sessionStarted}
           isHost={isHost}
           handleStartSession={handleStartSession}
         />
 
-        {/* Viewer Info Bar */}
-
+        {/* Host Info */}
         <HostInfoBar
-          avatarUrl="https://ic-vt-nss.xhcdn.com/a/YTkwN2JmOGYwMTFkZjBmYmY2ZDU1Mjc0MGU3MjQxNjQ/s(w:2560,h:1440),webp/026/688/155/v2/2560x1440.204.webp"
-          viewerName="Hinata hentai"
-          timeText="Created 5 minutes ago"
-          views={1}
+          avatarUrl={hostInfo.hostAvatar}
+          hostName={hostInfo.hostDisplayName || `User ${hostInfo.hostUserId}`}
+          timeText={`Created ${timeAgo(hostInfo.createdAt)}`}
+          views={viewerCount}
         />
 
         {/* Movie Info */}

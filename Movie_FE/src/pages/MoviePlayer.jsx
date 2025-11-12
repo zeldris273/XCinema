@@ -11,6 +11,7 @@ const MoviePlayer = () => {
   const navigate = useNavigate();
   const [videoUrl, setVideoUrl] = useState(null);
   const [episodes, setEpisodes] = useState([]);
+  const [seasons, setSeasons] = useState([]);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
   const [editCommentId, setEditCommentId] = useState(null);
@@ -149,11 +150,14 @@ const MoviePlayer = () => {
 
       try {
         const seasonResponse = await api.get(`/api/tvseries/${id}/seasons`);
-        const seasons = seasonResponse.data;
+        const seasonData = seasonResponse.data;
+        setSeasons(seasonData);
 
-        if (seasons.length > 0) {
+        console.log("Fetched seasons:", seasonData);
+
+        if (seasonData.length > 0) {
           const episodesResponse = await api.get(
-            `/api/tvseries/seasons/${seasons[0].id}/episodes`
+            `/api/tvseries/seasons/${seasonData[0].id}/episodes`
           );
           setEpisodes(episodesResponse.data);
         } else {
@@ -193,7 +197,6 @@ const MoviePlayer = () => {
         console.error("Play failed:", err.message);
         setError("Failed to play video. Please click play manually.");
       });
-      // Log view when user starts playing
       logView();
     }
     setIsPlaying(!isPlaying);
@@ -465,27 +468,45 @@ const MoviePlayer = () => {
     return commentsList.map((comment) => (
       <div
         key={comment.id}
-        className={`p-2 sm:p-4 bg-gray-800 rounded-lg flex flex-col space-y-1 ${
-          level > 0 ? "ml-4 sm:ml-8 border-l-2 border-gray-700" : ""
+        className={`relative p-4 sm:p-5 bg-gradient-to-br from-gray-800/80 to-gray-900/80 backdrop-blur-sm rounded-2xl border border-gray-700/50 hover:border-yellow-400/30 transition-all duration-300 ${
+          level > 0 ? "ml-6 sm:ml-12 mt-3" : ""
         }`}
       >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full overflow-hidden bg-gray-600 flex-shrink-0">
-              <img
-                src={comment.avatarUrl || "/src/assets/user.png"}
-                alt="User Avatar"
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  e.target.src = "/src/assets/user.png";
-                }}
-              />
+        {level > 0 && (
+          <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-yellow-400 to-yellow-600 rounded-l-2xl" />
+        )}
+
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex items-center space-x-3">
+            <div className="relative">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden ring-2 ring-yellow-400/50 bg-gradient-to-br from-yellow-400 to-yellow-600 flex-shrink-0">
+                <img
+                  src={comment.avatarUrl || "/src/assets/user.png"}
+                  alt="User Avatar"
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.target.src = "/src/assets/user.png";
+                  }}
+                />
+              </div>
+              <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-gray-900" />
             </div>
             <div className="flex flex-col">
-              <span className="font-semibold text-sm sm:text-base">
+              <span className="font-bold text-base sm:text-lg bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent">
                 {comment.displayName || comment.username}
               </span>
-              <span className="text-gray-400 text-xs sm:text-sm">
+              <span className="text-gray-400 text-xs sm:text-sm flex items-center gap-1">
+                <svg
+                  className="w-3 h-3"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                    clipRule="evenodd"
+                  />
+                </svg>
                 {new Date(comment.timestamp).toLocaleString()}
               </span>
             </div>
@@ -494,14 +515,13 @@ const MoviePlayer = () => {
             <div className="relative">
               <button
                 onClick={() => toggleMenu(comment.id)}
-                className="text-gray-400 hover:text-gray-300"
+                className="p-2 text-gray-400 hover:text-yellow-400 hover:bg-gray-700/50 rounded-lg transition-all duration-200"
               >
                 <svg
-                  className="w-4 sm:w-5 h-4 sm:h-5"
+                  className="w-5 h-5"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
                 >
                   <path
                     strokeLinecap="round"
@@ -512,17 +532,43 @@ const MoviePlayer = () => {
                 </svg>
               </button>
               {menuOpen === comment.id && (
-                <div className="absolute right-0 mt-2 w-24 sm:w-32 bg-gray-700 rounded-lg shadow-lg z-10">
+                <div className="absolute right-0 mt-2 w-40 bg-gray-800 rounded-xl shadow-2xl border border-gray-700 overflow-hidden z-20 animate-fadeIn">
                   <button
                     onClick={() => handleEditComment(comment)}
-                    className="block w-full text-left px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm text-gray-200 hover:bg-gray-600 rounded-t-lg"
+                    className="flex items-center gap-2 w-full text-left px-4 py-3 text-sm text-gray-200 hover:bg-yellow-400/10 hover:text-yellow-400 transition-colors duration-200"
                   >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                      />
+                    </svg>
                     Edit
                   </button>
                   <button
                     onClick={() => handleDeleteComment(comment.id)}
-                    className="block w-full text-left px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm text-gray-200 hover:bg-gray-600 rounded-b-lg"
+                    className="flex items-center gap-2 w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-red-400/10 hover:text-red-300 transition-colors duration-200"
                   >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                      />
+                    </svg>
                     Delete
                   </button>
                 </div>
@@ -534,57 +580,88 @@ const MoviePlayer = () => {
         {editCommentId === comment.id ? (
           <form
             onSubmit={(e) => handleUpdateComment(e, comment.id)}
-            className="flex items-center space-x-1 sm:space-x-2 mt-1 sm:mt-2"
+            className="space-y-3"
           >
-            <input
-              type="text"
+            <textarea
               value={editCommentText}
               onChange={(e) => setEditCommentText(e.target.value)}
-              className="flex-1 p-1 sm:p-2 rounded-lg bg-gray-700 text-white text-xs sm:text-sm border border-gray-600 focus:outline-none focus:border-yellow-400"
+              className="w-full p-3 rounded-xl bg-gray-900/50 text-white text-sm sm:text-base border border-gray-700 focus:outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 transition-all duration-200 resize-none"
+              rows="3"
             />
-            <button
-              type="submit"
-              className="px-2 sm:px-3 py-1 bg-yellow-500 rounded-lg hover:bg-yellow-400 text-xs sm:text-sm"
-            >
-              Save
-            </button>
-            <button
-              onClick={() => setEditCommentId(null)}
-              className="px-2 sm:px-3 py-1 bg-gray-600 rounded-lg hover:bg-gray-500 text-xs sm:text-sm"
-            >
-              Cancel
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="submit"
+                className="px-4 py-2 bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-black font-semibold rounded-lg transition-all duration-200 shadow-lg hover:shadow-yellow-400/50"
+              >
+                Save
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditCommentId(null)}
+                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-all duration-200"
+              >
+                Cancel
+              </button>
+            </div>
           </form>
         ) : (
-          <p className="text-gray-300 text-sm sm:text-base">
+          <p className="text-gray-200 text-sm sm:text-base leading-relaxed mb-3">
             {comment.commentText}
           </p>
         )}
 
-        <button
-          onClick={() =>
-            setReplyCommentId(replyCommentId === comment.id ? null : comment.id)
-          }
-          className="text-yellow-400 hover:text-yellow-300 text-xs sm:text-sm mt-1 self-start"
-        >
-          {replyCommentId === comment.id ? "Cancel Reply" : "Reply"}
-        </button>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() =>
+              setReplyCommentId(
+                replyCommentId === comment.id ? null : comment.id
+              )
+            }
+            className="flex items-center gap-1.5 text-yellow-400 hover:text-yellow-300 text-xs sm:text-sm font-medium transition-colors duration-200 group"
+          >
+            <svg
+              className="w-4 h-4 group-hover:scale-110 transition-transform"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"
+              />
+            </svg>
+            {replyCommentId === comment.id ? "Cancel" : "Reply"}
+          </button>
+
+          {comment.replies && comment.replies.length > 0 && (
+            <span className="flex items-center gap-1 text-gray-400 text-xs sm:text-sm">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z" />
+                <path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z" />
+              </svg>
+              {comment.replies.length}{" "}
+              {comment.replies.length === 1 ? "reply" : "replies"}
+            </span>
+          )}
+        </div>
 
         {replyCommentId === comment.id && (
           <form
             onSubmit={(e) => handleReplyComment(e, comment.id)}
-            className="flex items-center space-x-1 sm:space-x-2 mt-1 sm:mt-2"
+            className="mt-4 space-y-3 animate-slideDown"
           >
-            <input
-              type="text"
+            <textarea
               value={replyText}
               onChange={(e) => setReplyText(e.target.value)}
-              placeholder="Add a reply..."
-              className="flex-1 p-1 sm:p-2 rounded-lg bg-gray-700 text-white text-xs sm:text-sm border border-gray-600 focus:outline-none focus:border-yellow-400"
+              placeholder="Write a reply..."
+              className="w-full p-3 rounded-xl bg-gray-900/50 text-white text-sm border border-gray-700 focus:outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 transition-all duration-200 resize-none"
+              rows="2"
             />
             <button
               type="submit"
-              className="px-2 sm:px-3 py-1 bg-yellow-500 rounded-lg hover:bg-yellow-400 text-xs sm:text-sm"
+              className="px-4 py-2 bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-black font-semibold rounded-lg transition-all duration-200 shadow-lg hover:shadow-yellow-400/50"
             >
               Post Reply
             </button>
@@ -592,7 +669,7 @@ const MoviePlayer = () => {
         )}
 
         {comment.replies && comment.replies.length > 0 && (
-          <div className="mt-1 sm:mt-2">
+          <div className="mt-4 space-y-3">
             {renderComments(comment.replies, level + 1)}
           </div>
         )}
@@ -602,57 +679,117 @@ const MoviePlayer = () => {
 
   if (error) {
     return (
-      <div className="mt-15 text-white text-center p-4">
-        <p>{error}</p>
-        <button
-          onClick={() => {
-            setError(null);
-            setVideoUrl(null);
-          }}
-          className="ml-2 px-2 py-1 bg-yellow-500 rounded text-sm hover:bg-yellow-400"
-        >
-          Retry
-        </button>
-        <button
-          onClick={() => navigate("/")}
-          className="ml-2 px-2 py-1 bg-gray-600 rounded text-sm hover:bg-gray-500"
-        >
-          Back to Home
-        </button>
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-8 border border-gray-700 shadow-2xl">
+          <div className="flex items-center justify-center w-16 h-16 bg-red-500/10 rounded-full mx-auto mb-4">
+            <svg
+              className="w-8 h-8 text-red-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          </div>
+          <h3 className="text-xl font-bold text-white text-center mb-2">
+            Oops!
+          </h3>
+          <p className="text-gray-300 text-center mb-6">{error}</p>
+          <div className="flex gap-3">
+            <button
+              onClick={() => {
+                setError(null);
+                setVideoUrl(null);
+              }}
+              className="flex-1 px-4 py-3 bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-black font-semibold rounded-xl transition-all duration-200 shadow-lg"
+            >
+              Retry
+            </button>
+            <button
+              onClick={() => navigate("/")}
+              className="flex-1 px-4 py-3 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-xl transition-all duration-200"
+            >
+              Go Home
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (!videoUrl) {
-    return <div className="text-white text-center p-4">Loading video...</div>;
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-gray-700 border-t-yellow-400 mb-4"></div>
+          <p className="text-white text-lg">Loading video...</p>
+        </div>
+      </div>
+    );
   }
 
   if (!currentUserId) {
-    return <div className="text-white text-center p-4">Authenticating...</div>;
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-gray-700 border-t-yellow-400 mb-4"></div>
+          <p className="text-white text-lg">Authenticating...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="bg-neutral-900 min-h-screen text-white">
+    <div className="bg-gradient-to-br from-gray-900 via-black to-gray-900 min-h-screen text-white">
       {showResumePrompt && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-lg p-4 sm:p-6 w-80 sm:w-96 text-center">
-            <h3 className="text-lg sm:text-xl font-semibold mb-2 sm:mb-4">
-              Resume Playback
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
+          <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 sm:p-8 w-full max-w-md border border-gray-700 shadow-2xl">
+            <div className="flex items-center justify-center w-16 h-16 bg-yellow-400/10 rounded-full mx-auto mb-4">
+              <svg
+                className="w-8 h-8 text-yellow-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </div>
+            <h3 className="text-xl sm:text-2xl font-bold mb-3 text-center bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent">
+              Resume Playback?
             </h3>
-            <p className="text-sm sm:text-base mb-4 sm:mb-6">
-              You previously watched up to {formatTime(savedTime)}. Would you
-              like to resume from there?
+            <p className="text-sm sm:text-base mb-6 text-center text-gray-300">
+              You previously watched up to{" "}
+              <span className="font-semibold text-yellow-400">
+                {formatTime(savedTime)}
+              </span>
+              . Would you like to continue from where you left off?
             </p>
-            <div className="flex justify-center space-x-2 sm:space-x-4">
+            <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={handleResume}
-                className="px-4 sm:px-6 py-2 bg-yellow-500 rounded-lg hover:bg-yellow-400 text-sm sm:text-base"
+                className="flex-1 px-6 py-3 bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-black font-bold rounded-xl transition-all duration-200 shadow-lg hover:shadow-yellow-400/50 transform hover:scale-105"
               >
                 Resume
               </button>
               <button
                 onClick={handleStartOver}
-                className="px-4 sm:px-6 py-2 bg-gray-600 rounded-lg hover:bg-gray-500 text-sm sm:text-base"
+                className="flex-1 px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-xl transition-all duration-200"
               >
                 Start Over
               </button>
@@ -697,23 +834,35 @@ const MoviePlayer = () => {
         containerRef={containerRef}
         videoRef={videoRef}
         handleMouseMove={handleMouseMove}
+        posterUrl={seasons.length > 0 ? seasons[0].backdropUrl : null}
       />
 
-      <div className="flex justify-center mt-6">
+      <div className="flex justify-center mt-8 px-4">
         <button
           onClick={() => navigate("/create-room")}
-          className="flex items-center gap-2 bg-yellow-400 hover:bg-yellow-500 text-black font-semibold px-6 py-3 rounded-xl shadow-md transition-all"
+          className="group relative flex items-center gap-3 bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 hover:from-yellow-500 hover:via-yellow-600 hover:to-yellow-700 text-black font-bold px-8 py-4 rounded-2xl shadow-2xl hover:shadow-yellow-400/50 transition-all duration-300 transform hover:scale-105 overflow-hidden"
         >
-          Watch Party
+          <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/30 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
+          <svg
+            className="w-6 h-6 relative z-10"
+            fill="currentColor"
+            viewBox="0 0 20 20"
+          >
+            <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+          </svg>
+          <span className="relative z-10 text-lg">Watch Party</span>
         </button>
       </div>
 
       {mediaType === "tv" && (
-        <div className="container mx-auto p-2 sm:p-4">
-          <h2 className="text-xl sm:text-2xl font-bold mb-2 sm:mb-4">
-            Episodes
-          </h2>
-          <div className="flex overflow-x-auto space-x-2 sm:space-x-4 pb-2 sm:pb-4 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-gray-900">
+        <div className="container mx-auto px-4 py-8 sm:py-12">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-1 h-8 bg-gradient-to-b from-yellow-400 to-yellow-600 rounded-full"></div>
+            <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+              Episodes
+            </h2>
+          </div>
+          <div className="flex overflow-x-auto gap-4 pb-4 scrollbar-thin scrollbar-thumb-yellow-500/50 scrollbar-track-gray-800/50 hover:scrollbar-thumb-yellow-400/70">
             {episodes.length > 0 ? (
               episodes.map((episode) => {
                 const currentEpisodeNumber =
@@ -726,51 +875,144 @@ const MoviePlayer = () => {
                   <div
                     key={episode.id}
                     onClick={() => handleEpisodeChange(episode)}
-                    className={`flex-shrink-0 w-16 sm:w-30 p-1 sm:p-2 rounded-lg cursor-pointer transition-all ${
+                    className={`group relative flex-shrink-0 w-32 sm:w-40 h-20 sm:h-24 rounded-2xl cursor-pointer transition-all duration-300 transform hover:scale-105 overflow-hidden ${
                       isActive
-                        ? "bg-yellow-500 border-yellow-300"
-                        : "bg-slate-700 hover:bg-slate-600 border-slate-600"
+                        ? "ring-4 ring-yellow-400 shadow-xl shadow-yellow-400/50"
+                        : "hover:ring-2 hover:ring-yellow-400/50"
                     }`}
                   >
-                    <h3 className="text-xs sm:text-sm font-semibold text-center">
-                      Episode {currentEpisodeNumber}
-                    </h3>
+                    <div
+                      className={`absolute inset-0 ${
+                        isActive
+                          ? "bg-gradient-to-br from-yellow-400 via-yellow-500 to-yellow-600"
+                          : "bg-gradient-to-br from-gray-700 to-gray-800 group-hover:from-gray-600 group-hover:to-gray-700"
+                      } transition-all duration-300`}
+                    ></div>
+
+                    <div className="absolute inset-0 flex flex-col items-center justify-center p-3">
+                      <div
+                        className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center mb-2 ${
+                          isActive
+                            ? "bg-black/20"
+                            : "bg-white/10 group-hover:bg-white/20"
+                        } transition-all duration-300`}
+                      >
+                        <svg
+                          className={`w-5 h-5 sm:w-6 sm:h-6 ${
+                            isActive ? "text-black" : "text-white"
+                          }`}
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
+                        </svg>
+                      </div>
+                      <h3
+                        className={`text-sm sm:text-base font-bold text-center ${
+                          isActive ? "text-black" : "text-white"
+                        }`}
+                      >
+                        EP {currentEpisodeNumber}
+                      </h3>
+                    </div>
+
+                    {isActive && (
+                      <div className="absolute top-2 right-2">
+                        <div className="w-3 h-3 bg-green-400 rounded-full shadow-lg shadow-green-400/50 animate-pulse"></div>
+                      </div>
+                    )}
                   </div>
                 );
               })
             ) : (
-              <p className="text-gray-400 text-sm">No episodes available.</p>
+              <div className="w-full text-center py-12">
+                <p className="text-gray-400 text-lg">No episodes available.</p>
+              </div>
             )}
           </div>
         </div>
       )}
 
-      <div className="container mx-auto p-2 sm:p-4">
-        <h2 className="text-xl sm:text-2xl font-bold mb-2 sm:mb-4">Comments</h2>
-        <form onSubmit={handleAddComment} className="mb-3 sm:mb-6">
-          <div className="flex items-center space-x-1 sm:space-x-3">
-            <input
-              type="text"
+      <div className="container mx-auto px-4 py-8 sm:py-12">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-1 h-8 bg-gradient-to-b from-yellow-400 to-yellow-600 rounded-full"></div>
+          <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+            Comments
+          </h2>
+          <div className="ml-auto flex items-center gap-2 px-4 py-2 bg-gray-800/50 rounded-full border border-gray-700">
+            <svg
+              className="w-5 h-5 text-yellow-400"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <span className="text-sm font-semibold text-gray-300">
+              {comments.length}
+            </span>
+          </div>
+        </div>
+
+        <form onSubmit={handleAddComment} className="mb-8">
+          <div className="relative">
+            <textarea
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
-              placeholder="Add a comment..."
-              className="flex-1 p-2 sm:p-3 rounded-lg bg-gray-800 text-white text-sm sm:text-base border border-gray-700 focus:outline-none focus:border-yellow-400"
+              placeholder="Share your thoughts..."
+              className="w-full p-4 pr-24 rounded-2xl bg-gradient-to-br from-gray-800/80 to-gray-900/80 backdrop-blur-sm text-white text-sm sm:text-base border border-gray-700 focus:outline-none focus:border-yellow-400 focus:ring-4 focus:ring-yellow-400/20 transition-all duration-200 resize-none placeholder-gray-500"
+              rows="3"
             />
             <button
               type="submit"
-              className="px-2 sm:px-4 py-1 sm:py-2 bg-yellow-500 rounded-lg hover:bg-yellow-400 transition-all text-sm sm:text-base"
+              className="absolute right-3 bottom-3 px-5 py-2.5 bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-black font-bold rounded-xl transition-all duration-200 shadow-lg hover:shadow-yellow-400/50 transform hover:scale-105 flex items-center gap-2"
             >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                />
+              </svg>
               Post
             </button>
           </div>
         </form>
-        <div className="space-y-2 sm:space-y-4">
+
+        <div className="space-y-4">
           {comments.length > 0 ? (
             renderComments(comments)
           ) : (
-            <p className="text-gray-400 text-center text-sm sm:text-base">
-              No comments yet. Be the first to comment!
-            </p>
+            <div className="text-center py-16">
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-gray-800/50 rounded-full mb-4">
+                <svg
+                  className="w-10 h-10 text-gray-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                  />
+                </svg>
+              </div>
+              <p className="text-gray-400 text-lg mb-2">No comments yet</p>
+              <p className="text-gray-500 text-sm">
+                Be the first to share your thoughts!
+              </p>
+            </div>
           )}
         </div>
       </div>

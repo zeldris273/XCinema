@@ -1,14 +1,63 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import customSwal from "../utils/customSwal.js";
+import * as signalR from "@microsoft/signalr";
+import { jwtDecode } from "jwt-decode";
 
 const CreateRoom = () => {
   const [roomName, setRoomName] = useState("Watch Mango Garden Hotel together");
   const [autoStart, setAutoStart] = useState(false);
   const [privateRoom, setPrivateRoom] = useState(false);
+  const navigate = useNavigate();
 
-  const handleCreate = () => {
-    alert("Room created successfully!");
+  useEffect(() => {
+    const token = localStorage.getItem("accessToken");
+
+    if (!token) {
+      customSwal("Unauthorized", "Please log in to create a room.", "error");
+      navigate("/auth");
+    }
+  }, [navigate]);
+
+  const handleCreate = async () => {
+    const roomId = "room-" + Math.floor(Math.random() * 100000);
+    let currentUser = null;
+
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (token) {
+        const decoded = jwtDecode(token);
+        currentUser = decoded.sub;
+      }
+    } catch (err) {
+      console.error("❌ Failed to decode token:", err);
+    }
+
+    if (!currentUser) {
+      customSwal("Error", "Cannot identify your account.", "error");
+      return;
+    }
+
+    const connection = new signalR.HubConnectionBuilder()
+      .withUrl(import.meta.env.VITE_HUB_URL)
+      .withAutomaticReconnect()
+      .build();
+
+    try {
+      await connection.start();
+      await connection.invoke("CreateRoom", roomId, currentUser);
+
+      customSwal("Room Created!", `Room ID: ${roomId}`, "success");
+      navigate(`/watch-party?roomId=${roomId}&user=${currentUser}`);
+    } catch (err) {
+      console.error("❌ Failed to create room:", err);
+      customSwal("Failed", "Could not create room.", "error");
+    } finally {
+      await connection.stop();
+    }
   };
 
+  // ✅ UI
   return (
     <div className="min-h-screen bg-[#0e0e10] text-white flex items-center justify-center p-4 md:p-8 pt-24 mt-10">
       <div className="max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -67,8 +116,6 @@ const CreateRoom = () => {
                 You can start the session manually or automatically based on the
                 schedule.
               </p>
-
-              {/* Toggle Switch */}
               <label className="flex items-center justify-between cursor-pointer">
                 <span className="text-base">Start automatically</span>
                 <div
@@ -95,7 +142,6 @@ const CreateRoom = () => {
                 When enabled, only people with the invite link can join this
                 room.
               </p>
-
               <label className="flex items-center justify-between cursor-pointer">
                 <span className="text-base">Private Room</span>
                 <div

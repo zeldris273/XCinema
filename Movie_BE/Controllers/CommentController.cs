@@ -19,7 +19,6 @@ namespace backend.Controllers
             _context = context;
         }
 
-        // Lấy danh sách bình luận (hỗ trợ trả lời dạng cây)
         [HttpGet]
         public IActionResult GetComments([FromQuery] int? movieId, [FromQuery] int? tvSeriesId, [FromQuery] int? episodeId)
         {
@@ -28,7 +27,6 @@ namespace backend.Controllers
                 return BadRequest(new { error = "Must specify either movieId or tvSeriesId, but not both." });
             }
 
-            // Lấy tất cả bình luận (bao gồm cả trả lời)
             var allComments = _context.Comments
                 .Include(c => c.User)
                 .Include(c => c.Replies) // Bao gồm các trả lời
@@ -36,7 +34,6 @@ namespace backend.Controllers
                 .Where(c => episodeId == null || c.EpisodeId == episodeId)
                 .ToList();
 
-            // Chỉ lấy các bình luận gốc (ParentCommentId == null)
             var rootComments = allComments
                 .Where(c => c.ParentCommentId == null)
                 .Select(c => MapToCommentResponseDTO(c))
@@ -46,7 +43,6 @@ namespace backend.Controllers
             return Ok(rootComments);
         }
 
-        // Thêm bình luận mới (hỗ trợ trả lời)
         [HttpPost]
         public IActionResult AddComment([FromBody] CommentRequestDTO request)
         {
@@ -103,7 +99,6 @@ namespace backend.Controllers
                 return NotFound(new { error = "User not found." });
             }
 
-            // Kiểm tra ParentCommentId (nếu là trả lời)
             if (request.ParentCommentId.HasValue)
             {
                 var parentComment = _context.Comments.Find(request.ParentCommentId);
@@ -112,13 +107,11 @@ namespace backend.Controllers
                     return NotFound(new { error = "Parent comment not found." });
                 }
 
-                // Đảm bảo trả lời thuộc cùng movie hoặc tvSeries
                 if (parentComment.MovieId != request.MovieId || parentComment.TvSeriesId != request.TvSeriesId)
                 {
                     return BadRequest(new { error = "Parent comment does not belong to the specified movie or TV series." });
                 }
 
-                // Đảm bảo trả lời cùng episode (nếu có)
                 if (parentComment.EpisodeId != request.EpisodeId)
                 {
                     return BadRequest(new { error = "Parent comment does not belong to the specified episode." });
@@ -157,7 +150,6 @@ namespace backend.Controllers
             return CreatedAtAction(nameof(GetComments), new { movieId = comment.MovieId, tvSeriesId = comment.TvSeriesId, episodeId = comment.EpisodeId }, response);
         }
 
-        // Sửa bình luận
         [HttpPut("{id}")]
         public IActionResult UpdateComment(int id, [FromBody] CommentRequestDTO request)
         {
@@ -183,7 +175,7 @@ namespace backend.Controllers
 
             // Cập nhật nội dung bình luận
             comment.CommentText = request.CommentText;
-            comment.UpdatedAt = DateTime.Now;
+            comment.UpdatedAt = DateTime.UtcNow;
 
             _context.SaveChanges();
 

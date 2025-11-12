@@ -10,7 +10,7 @@ import {
 } from "react-icons/md";
 import { IoMdSettings } from "react-icons/io";
 import { RiVolumeMuteFill } from "react-icons/ri";
-import { FaVolumeUp } from "react-icons/fa";
+import { FaVolumeUp, FaPlay } from "react-icons/fa";
 import Hls from "hls.js";
 
 const VideoFrame = ({
@@ -49,7 +49,9 @@ const VideoFrame = ({
   containerRef,
   videoRef,
   handleMouseMove,
+  posterUrl,
 }) => {
+  // --- HLS setup ---
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !videoUrl) return;
@@ -69,13 +71,10 @@ const VideoFrame = ({
       });
 
       hls.on(Hls.Events.ERROR, (event, data) => {
-        if (data.fatal) {
-          console.error("HLS Error:", event, data);
-        }
+        if (data.fatal) console.error("HLS Error:", event, data);
       });
 
       video.hls = hls;
-
       return () => {
         if (video.hls) {
           video.hls.destroy();
@@ -87,6 +86,7 @@ const VideoFrame = ({
     }
   }, [videoUrl]);
 
+  // --- Playback / Event listeners ---
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -115,6 +115,7 @@ const VideoFrame = ({
     };
   }, [playbackRate, isMuted]);
 
+  // --- Fullscreen tracking ---
   useEffect(() => {
     const handleFullScreenChange = () => {
       setIsFullScreen(!!document.fullscreenElement);
@@ -143,10 +144,12 @@ const VideoFrame = ({
           height: isFullScreen ? "100%" : undefined,
         }}
       >
+        {/* VIDEO */}
         <video
           ref={videoRef}
           className="absolute top-0 left-0 w-full h-full rounded-lg shadow-lg object-cover"
           onClick={onPlayPause}
+          poster={posterUrl}
           controls={false}
           disablePictureInPicture
           onContextMenu={(e) => e.preventDefault()}
@@ -157,7 +160,20 @@ const VideoFrame = ({
           tabIndex={0}
         />
 
-        {showControls && (
+        {/* ✅ Nút Play trung tâm khi chưa phát */}
+        {!isPlaying && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-lg transition-all duration-500">
+            <button
+              onClick={onPlayPause}
+              className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center bg-black/70 hover:bg-black/90 text-white rounded-full shadow-xl hover:scale-110 transition-transform duration-300"
+            >
+              <FaPlay className="w-7 h-7 ml-1" />
+            </button>
+          </div>
+        )}
+
+        {/* ✅ Chỉ hiện các controls khi video đang phát */}
+        {showControls && isPlaying && (
           <div
             className={`absolute bottom-0 left-0 right-0 ${
               isFullScreen ? "p-2 sm:p-4" : "p-1 sm:p-2"
@@ -187,17 +203,26 @@ const VideoFrame = ({
 
             {/* Controls */}
             <div className="flex items-center justify-between mt-1 sm:mt-2">
+              {/* Left side */}
               <div className="flex items-center space-x-2">
                 <button
                   onClick={onPlayPause}
                   className="text-white hover:bg-transparent p-1"
                 >
                   {isPlaying ? (
-                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                    <svg
+                      className="w-6 h-6"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                    >
                       <path d="M6 4h4v16H6zm8 0h4v16h-4z" />
                     </svg>
                   ) : (
-                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                    <svg
+                      className="w-6 h-6"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                    >
                       <path d="M8 5v14l11-7z" />
                     </svg>
                   )}
@@ -207,6 +232,7 @@ const VideoFrame = ({
                 </button>
               </div>
 
+              {/* Right side */}
               <div className="flex items-center space-x-2">
                 <button onClick={onSkipBackward} className="text-white p-1">
                   <MdReplay5 />
@@ -214,6 +240,8 @@ const VideoFrame = ({
                 <button onClick={onSkipForward} className="text-white p-1">
                   <MdOutlineForward5 />
                 </button>
+
+                {/* Settings */}
                 <div className="relative">
                   <button
                     onClick={() => setShowSettingsMenu(!showSettingsMenu)}
@@ -221,6 +249,7 @@ const VideoFrame = ({
                   >
                     <IoMdSettings />
                   </button>
+
                   {showSettingsMenu && (
                     <div className="absolute bottom-10 right-0 w-44 bg-[#1e1e1e] text-white rounded shadow-lg z-50">
                       <div className="flex justify-between px-3 py-2 bg-black">
@@ -253,13 +282,16 @@ const VideoFrame = ({
                           <MdClose />
                         </button>
                       </div>
+
                       <div className="px-3 py-2 space-y-1 bg-[#2b2b2b] text-sm">
-                        {settingsTab === "quality" &&
+                        {settingsTab === "quality" && (
                           <>
                             <button
                               onClick={() => onQualityChange(-1)}
                               className={`block w-full text-left ${
-                                selectedQuality === -1 ? "text-white font-bold" : "text-gray-300"
+                                selectedQuality === -1
+                                  ? "text-white font-bold"
+                                  : "text-gray-300"
                               }`}
                             >
                               Auto
@@ -278,7 +310,7 @@ const VideoFrame = ({
                               </button>
                             ))}
                           </>
-                        }
+                        )}
 
                         {settingsTab === "speed" &&
                           [0.5, 1.0, 1.5, 2.0].map((rate) => (
@@ -286,17 +318,20 @@ const VideoFrame = ({
                               key={rate}
                               onClick={() => onPlaybackRateChange(rate)}
                               className={`block w-full text-left ${
-                                playbackRate === rate ? "text-white font-bold" : "text-gray-300"
+                                playbackRate === rate
+                                  ? "text-white font-bold"
+                                  : "text-gray-300"
                               }`}
                             >
                               {rate}x
                             </button>
-                          ))
-                        }
+                          ))}
                       </div>
                     </div>
                   )}
                 </div>
+
+                {/* Fullscreen */}
                 <button onClick={onToggleFullScreen} className="text-white p-1">
                   {isFullScreen ? <MdFullscreenExit /> : <MdFullscreen />}
                 </button>

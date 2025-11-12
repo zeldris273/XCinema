@@ -452,11 +452,13 @@ namespace backend.Controllers
 
             var seasons = _context.Seasons
                 .Where(s => s.TvSeriesId == id)
+                .Include(s => s.TvSeries)
                 .Select(s => new SeasonResponseDTO
                 {
                     Id = s.Id,
                     TvSeriesId = s.TvSeriesId,
-                    SeasonNumber = s.SeasonNumber
+                    SeasonNumber = s.SeasonNumber,
+                    BackdropUrl = s.TvSeries.BackdropUrl
                 })
                 .ToList();
 
@@ -642,20 +644,16 @@ namespace backend.Controllers
                 if (series == null)
                     return NotFound(new { error = "TV series not found" });
 
-                // Xóa các liên kết TvSeriesActor
                 _context.Set<TvSeriesActor>().RemoveRange(series.TvSeriesActors);
 
-                // Xóa các episode trong season
                 foreach (var season in series.Seasons)
                 {
                     var episodes = _context.Episodes.Where(e => e.SeasonId == season.Id);
                     _context.Episodes.RemoveRange(episodes);
                 }
 
-                // Xóa các season
                 _context.Seasons.RemoveRange(series.Seasons);
 
-                // Xóa TV series
                 _context.TvSeries.Remove(series);
 
                 await _context.SaveChangesAsync();
