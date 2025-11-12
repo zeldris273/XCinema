@@ -41,8 +41,8 @@ const VideoPartyFrame = ({
   sessionStarted,
   isHost,
   handleStartSession,
-  movieTitle = "The Hand That Rocks the Cradle",
-  moviePoster = "https://www.hentaigem.com/contents/videos_screenshots/31000/31284/preview.jpg",
+  movieTitle,
+  movieBackdrop,
 }) => {
   // If the watch party has NOT started yet → show waiting overlay
   if (!sessionStarted) {
@@ -50,7 +50,7 @@ const VideoPartyFrame = ({
       <div className="relative flex items-center justify-center w-full h-full bg-black text-white overflow-hidden">
         {/* Background poster */}
         <img
-          src={moviePoster}
+          src={movieBackdrop}
           alt="poster"
           className="absolute inset-0 w-full h-full object-cover opacity-30"
         />

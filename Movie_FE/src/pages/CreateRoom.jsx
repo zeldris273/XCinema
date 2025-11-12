@@ -2,13 +2,18 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import customSwal from "../utils/customSwal.js";
 import * as signalR from "@microsoft/signalr";
+import { useLocation } from "react-router-dom";
+import { useSelector } from "react-redux";
 import { jwtDecode } from "jwt-decode";
 
 const CreateRoom = () => {
-  const [roomName, setRoomName] = useState("Watch Mango Garden Hotel together");
   const [autoStart, setAutoStart] = useState(false);
   const [privateRoom, setPrivateRoom] = useState(false);
+  const [movie, setMovie] = useState(null);
+
   const navigate = useNavigate();
+
+  const { selectedMovie } = useSelector((state) => state.movie);
 
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
@@ -18,6 +23,16 @@ const CreateRoom = () => {
       navigate("/auth");
     }
   }, [navigate]);
+
+  useEffect(() => {
+    if (selectedMovie) {
+      setMovie(selectedMovie);
+      localStorage.setItem("selectedMovie", JSON.stringify(selectedMovie));
+    } else {
+      const cached = localStorage.getItem("selectedMovie");
+      if (cached) setMovie(JSON.parse(cached));
+    }
+  }, [selectedMovie]);
 
   const handleCreate = async () => {
     const roomId = "room-" + Math.floor(Math.random() * 100000);
@@ -48,7 +63,9 @@ const CreateRoom = () => {
       await connection.invoke("CreateRoom", roomId, currentUser);
 
       customSwal("Room Created!", `Room ID: ${roomId}`, "success");
-      navigate(`/watch-party?roomId=${roomId}&user=${currentUser}`);
+      navigate(`/watch-party?roomId=${roomId}&user=${currentUser}`, {
+        state: { movie },
+      });
     } catch (err) {
       console.error("❌ Failed to create room:", err);
       customSwal("Failed", "Could not create room.", "error");
@@ -65,28 +82,27 @@ const CreateRoom = () => {
         <div className="bg-[#1a1a1d] rounded-2xl overflow-hidden shadow-lg flex flex-col">
           <div className="bg-black flex items-center justify-center">
             <img
-              src="https://hentaiporns.net/r/entradas/2025/01/sample_bf2df1e9dae7de607a31f1e1e31203fc.jpg"
-              alt="Poster"
+              src={movie?.posterUrl}
+              alt={movie?.title}
               className="w-full h-auto object-contain"
             />
           </div>
           <div className="p-5 space-y-3">
-            <h1 className="text-xl font-bold">Mango Garden Hotel</h1>
-            <p className="text-yellow-400 font-semibold text-sm">Mango</p>
+            <h1 className="text-xl font-bold">
+              {movie?.title || "Loading..."}
+            </h1>
+            <p className="text-yellow-400 font-semibold text-sm">
+              {movie?.studio || "Unknown Studio"}
+            </p>
             <div className="flex flex-wrap gap-2 text-xs text-gray-300">
-              <span className="px-2 py-1 bg-neutral-800 rounded">Drama</span>
-              <span className="px-2 py-1 bg-neutral-800 rounded">Romance</span>
-              <span className="px-2 py-1 bg-neutral-800 rounded">
-                Psychology
-              </span>
-              <span className="px-2 py-1 bg-neutral-800 rounded">
-                Emotional
-              </span>
+              {movie?.genres?.map((g, idx) => (
+                <span key={idx} className="px-2 py-1 bg-neutral-800 rounded">
+                  {g}
+                </span>
+              ))}
             </div>
-            <p className="text-xs text-gray-400 leading-relaxed">
-              An ambitious hotel manager and his reluctant daughter travel to
-              Málaga, where they find what they have long desired in the
-              peaceful mango garden of a local farmer.
+            <p className="text-xs text-gray-400 leading-relaxed line-clamp-4">
+              {movie?.overview || "No description available."}
             </p>
           </div>
         </div>
@@ -101,7 +117,7 @@ const CreateRoom = () => {
               </h2>
               <input
                 type="text"
-                value={roomName}
+                value={`Let's Watch ${movie?.title || "Movie"} Together !`}
                 onChange={(e) => setRoomName(e.target.value)}
                 className="w-full bg-[#2a2a2e] border border-neutral-700 rounded-xl px-4 py-3 text-sm text-white outline-none focus:ring-2 focus:ring-yellow-400 transition"
               />

@@ -62,18 +62,32 @@ namespace backend.Hubs
             if (ActiveRooms.TryGetValue(roomId, out var room))
             {
                 bool isHost = room.HostUserId == userId;
-
-
                 ConnectionToUser[Context.ConnectionId] = userId;
-
                 bool wasAdded = room.Viewers.Add(userId);
 
-                Console.WriteLine($"👤 {userId} joined {roomId}. Was new: {wasAdded}. Total: {room.Viewers.Count}");
+                string displayName;
+                string avatarUrl = null;
+
+                if (int.TryParse(userId, out int parsedUserId))
+                {
+                    var profile = await _authService.GetUserProfile(parsedUserId);
+                    displayName = profile?.DisplayName ?? profile?.Email ?? $"User {userId}";
+                    avatarUrl = profile?.AvatarUrl
+                        ?? $"https://api.dicebear.com/7.x/bottts/svg?seed={userId}";
+
+                    Console.WriteLine($"👤 profile avatar {avatarUrl}");
+                }
+                else
+                {
+                    displayName = "1 khách";
+                }
+
+                Console.WriteLine($"👤 {displayName} joined {roomId}. Was new: {wasAdded}. Total: {room.Viewers.Count}");
 
                 if (wasAdded)
                 {
                     await Clients.Group(roomId)
-                        .SendAsync("ReceiveChat", "System", $"{userId} joined the room.");
+                        .SendAsync("ReceiveSystemMessage", $"{displayName} vừa tham gia phòng");
                 }
 
                 await Clients.Caller.SendAsync(
@@ -87,21 +101,27 @@ namespace backend.Hubs
                     room.Viewers.Count
                 );
 
+                // 🟢 Gửi avatar và tên của user về client (để hiển thị trong ChatBox)
+                if (avatarUrl != null)
+                {
+                    await Clients.Caller.SendAsync("ReceiveUserProfile", displayName, avatarUrl);
+                }
+
                 await Clients.Group(roomId)
                     .SendAsync("ViewerCountUpdated", room.Viewers.Count);
 
                 if (room.IsStarted)
                 {
-                    Console.WriteLine($"📺 Syncing started session for {userId}");
                     await Clients.Caller.SendAsync("ReceiveStartSession", room.CurrentTime);
                 }
             }
             else
             {
-                Console.WriteLine($"⚠ Room {roomId} not found when {userId} tried to join.");
                 await Clients.Caller.SendAsync("JoinedRoom", roomId, false, null, null, 0);
             }
         }
+
+
 
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
@@ -111,19 +131,27 @@ namespace backend.Hubs
                 {
                     var room = kvp.Value;
 
-                    // Nếu host disconnect
                     if (room.HostConnectionId == Context.ConnectionId)
                     {
                         Console.WriteLine($"⚠ Host {room.HostUserId} disconnected from {room.RoomId}");
                         continue;
                     }
 
-                    // Nếu là viewer trong phòng
                     if (room.Viewers.Remove(userId))
                     {
-                        Console.WriteLine($"👋 {userId} left {room.RoomId}. Total now: {room.Viewers.Count}");
-                        await Clients.Group(room.RoomId).SendAsync("ViewerCountUpdated", room.Viewers.Count);
-                        break; // vì 1 user chỉ thuộc 1 room
+                        string displayName = int.TryParse(userId, out int parsedId)
+                            ? (await _authService.GetUserProfile(parsedId))?.DisplayName ?? $"User {userId}"
+                            : "1 khách";
+
+                        Console.WriteLine($"👋 {displayName} left {room.RoomId}");
+
+                        // 🟠 Thông báo system khi người rời phòng
+                        await Clients.Group(room.RoomId)
+                            .SendAsync("ReceiveSystemMessage", $"{displayName} vừa rời phòng");
+
+                        await Clients.Group(room.RoomId)
+                            .SendAsync("ViewerCountUpdated", room.Viewers.Count);
+                        break;
                     }
                 }
             }
@@ -163,10 +191,19 @@ namespace backend.Hubs
         }
 
 
-        public async Task SendChat(string roomId, string user, string message)
+        public async Task SendChat(string roomId, string user, string message, string avatarUrl)
         {
-            await Clients.Group(roomId).SendAsync("ReceiveChat", user, message);
+            if (!ActiveRooms.TryGetValue(roomId, out var room))
+            {
+                await Clients.Caller.SendAsync("Error", "Room not found.");
+                return;
+            }
+
+            await Clients.Group(roomId).SendAsync("ReceiveChat", user, message, avatarUrl);
+
+            Console.WriteLine($"💬 [{roomId}] {user}: {message}");
         }
+
 
         public async Task SyncPlay(string roomId, double time)
         {

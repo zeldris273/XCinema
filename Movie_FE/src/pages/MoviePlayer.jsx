@@ -839,7 +839,18 @@ const MoviePlayer = () => {
 
       <div className="flex justify-center mt-8 px-4">
         <button
-          onClick={() => navigate("/create-room")}
+          onClick={() => {
+            const movieData = {
+              id,
+              title,
+              posterUrl: seasons.length > 0 ? seasons[0].backdropUrl : null,
+              overview: "Episode " + episodeNumber,
+              genres: ["TV Series"],
+            };
+
+            localStorage.setItem("selectedMovie", JSON.stringify(movieData));
+            navigate("/create-room", { state: { movie: movieData } });
+          }}
           className="group relative flex items-center gap-3 bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 hover:from-yellow-500 hover:via-yellow-600 hover:to-yellow-700 text-black font-bold px-8 py-4 rounded-2xl shadow-2xl hover:shadow-yellow-400/50 transition-all duration-300 transform hover:scale-105 overflow-hidden"
         >
           <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/30 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>

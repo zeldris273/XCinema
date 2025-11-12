@@ -14,11 +14,41 @@ import HostInfoBar from "../components/watch-party/HostInfoBar.jsx";
 import MovieInfo from "../components/watch-party/MovieInfo.jsx";
 import timeAgo from "../utils/timeAgo.js";
 import customSwal from "../utils/customSwal.js";
+import { useSelector } from "react-redux";
 
 const WatchParty = () => {
+  const { selectedMovie } = useSelector((state) => state.movie);
+  const [movie, setMovie] = useState(null);
+
+  // ⚙️ State
+  const [connection, setConnection] = useState(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [systemMessages, setSystemMessages] = useState([]);
+  const [input, setInput] = useState("");
+  const [isHost, setIsHost] = useState(false);
+  const [sessionStarted, setSessionStarted] = useState(false);
+  const [viewerCount, setViewerCount] = useState(1);
+  const [hostInfo, setHostInfo] = useState({ hostUserId: "", createdAt: "" });
+
+  // Video state
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [isMuted, setIsMuted] = useState(false);
+  const [showControls, setShowControls] = useState(true);
+  const [playbackRate, setPlaybackRate] = useState(1);
+  const [qualityLevels, setQualityLevels] = useState([]);
+  const [selectedQuality, setSelectedQuality] = useState(-1);
+  const [isFullScreen, setIsFullScreen] = useState(false);
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+  const [settingsTab, setSettingsTab] = useState("quality");
+  const [isChatHidden, setIsChatHidden] = useState(false);
+
   const navigate = useNavigate();
   const location = useLocation();
   const query = new URLSearchParams(location.search);
+  const movieState = location.state?.movie;
 
   // 🧩 Params
   const roomId = query.get("roomId");
@@ -43,29 +73,17 @@ const WatchParty = () => {
     currentUser = guestId;
   }
 
-  // ⚙️ State
-  const [connection, setConnection] = useState(null);
-  const [isConnected, setIsConnected] = useState(false);
-  const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState("");
-  const [isHost, setIsHost] = useState(false);
-  const [sessionStarted, setSessionStarted] = useState(false);
-  const [viewerCount, setViewerCount] = useState(1);
-  const [hostInfo, setHostInfo] = useState({ hostUserId: "", createdAt: "" });
-
-  // Video state
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [isMuted, setIsMuted] = useState(false);
-  const [showControls, setShowControls] = useState(true);
-  const [playbackRate, setPlaybackRate] = useState(1);
-  const [qualityLevels, setQualityLevels] = useState([]);
-  const [selectedQuality, setSelectedQuality] = useState(-1);
-  const [isFullScreen, setIsFullScreen] = useState(false);
-  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
-  const [settingsTab, setSettingsTab] = useState("quality");
-  const [isChatHidden, setIsChatHidden] = useState(false);
+  useEffect(() => {
+    if (movieState) {
+      setMovie(movieState);
+      localStorage.setItem("selectedMovie", JSON.stringify(movieState));
+    } else if (selectedMovie) {
+      setMovie(selectedMovie);
+    } else {
+      const cached = localStorage.getItem("selectedMovie");
+      if (cached) setMovie(JSON.parse(cached));
+    }
+  }, [movieState, selectedMovie]);
 
   const [userProfile, setUserProfile] = useState({
     displayName: "",
@@ -98,9 +116,20 @@ const WatchParty = () => {
       .catch((err) => console.error("SignalR connection error:", err));
 
     // Chat
-    connect.on("ReceiveChat", (user, message) =>
-      setMessages((prev) => [...prev, { user, text: message }])
+    connect.on("ReceiveChat", (user, message, avatar) =>
+      setMessages((prev) => [...prev, { user, text: message, avatar }])
     );
+
+    connect.on("ReceiveSystemMessage", (msg) =>
+      setSystemMessages((prev) => [...prev, msg])
+    );
+
+    connect.on("ReceiveUserProfile", (displayName, avatarUrl) => {
+      setUserProfile({
+        displayName,
+        avatarUrl,
+      });
+    });
 
     // Play / Pause
     connect.on("ReceivePlay", (time) => {
@@ -187,9 +216,6 @@ const WatchParty = () => {
           createdAt,
         });
         setViewerCount(count || 1);
-        console.log(
-          `👤 Host Profile: ${hostDisplayName}, Avatar: ${hostAvatarUrl}`
-        );
       }
     );
 
@@ -313,7 +339,33 @@ const WatchParty = () => {
   // ======================================================
   const handleSend = async () => {
     if (!input.trim() || !connection) return;
-    await connection.invoke("SendChat", roomId, currentUser, input);
+
+    // ✅ Lấy tên hiển thị từ userProfile (nếu có)
+    const senderName =
+      userProfile.displayName ||
+      userProfile.email ||
+      currentUser ||
+      "Unknown User";
+
+    // ✅ Lấy avatar đúng
+    const senderAvatar =
+      userProfile.avatarUrl ||
+      `https://api.dicebear.com/7.x/identicon/svg?seed=${senderName}`;
+
+    console.log("🟢 Sending:", {
+      roomId,
+      senderName,
+      senderAvatar,
+      text: input,
+    });
+
+    await connection.invoke(
+      "SendChat",
+      roomId,
+      senderName,
+      input,
+      senderAvatar
+    );
     setInput("");
   };
 
@@ -344,7 +396,9 @@ const WatchParty = () => {
               LIVE
             </span>
             <div>
-              <h1 className="text-lg font-semibold">Watch Party Room</h1>
+              <h1 className="text-lg font-semibold">
+                Let's Watch {movie?.title || "Loading"} Together !
+              </h1>
               <p className="text-sm text-gray-400">Room ID: {roomId}</p>
             </div>
           </div>
@@ -419,6 +473,8 @@ const WatchParty = () => {
           sessionStarted={sessionStarted}
           isHost={isHost}
           handleStartSession={handleStartSession}
+          movieTitle={movie?.title || "Loading..."}
+          movieBackdrop={movie?.backdropUrl}
         />
 
         {/* Host Info */}
@@ -430,22 +486,21 @@ const WatchParty = () => {
         />
 
         {/* Movie Info */}
-        <MovieInfo
-          posterUrl="https://m10.hentaiera.com/029/bt1rvyaflj/9t.jpg"
-          title="Nhật Quyền Nhân"
-          originalTitle="One Punch Man"
-          year="2015"
-          season="3"
-          episode="4"
-          genres={[
-            "Hành Động",
-            "Anime",
-            "Hài",
-            "Hoạt Hình",
-            "Kỹ Ảo",
-            "Phiêu Lưu",
-          ]}
-        />
+        {movie && (
+          <MovieInfo
+            posterUrl={movie.posterUrl || movie.backdropUrl}
+            title={movie.title}
+            originalTitle={movie.originalTitle || movie.title}
+            year={
+              movie.releaseDate
+                ? new Date(movie.releaseDate).getFullYear()
+                : "N/A"
+            }
+            season={movie.seasonNumber || "1"}
+            episode={movie.episodeNumber || "1"}
+            genres={movie.genres || []}
+          />
+        )}
       </div>
 
       {/* Chat Box */}
@@ -453,11 +508,15 @@ const WatchParty = () => {
         isChatHidden={isChatHidden}
         setIsChatHidden={setIsChatHidden}
         messages={messages}
+        systemMessages={systemMessages}
         input={input}
         setInput={setInput}
         handleKeyPress={handleKeyPress}
         handleSend={handleSend}
-        currentUser={currentUser}
+        currentUser={
+          userProfile.displayName || userProfile.email || currentUser
+        }
+        avatarUrl={userProfile.avatarUrl}
         isConnected={isConnected}
       />
     </div>

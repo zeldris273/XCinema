@@ -12,11 +12,14 @@ import { FaUser } from "react-icons/fa";
 import { jwtDecode } from "jwt-decode";
 import { Slug } from "../utils/Slug";
 import customSwal from "../utils/customSwal";
+import { useDispatch } from "react-redux";
+import { setSelectedMovie } from "../store/movieSlice.js";
 
 const DetailsPage = () => {
   const { id, title: urlTitle } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const dispatch = useDispatch();
 
   const mediaType = location.pathname.includes("movies") ? "movie" : "tv";
   const {
@@ -191,6 +194,21 @@ const DetailsPage = () => {
   };
 
   const handlePlayNow = () => {
+    dispatch(
+      setSelectedMovie({
+        id: data.id,
+        title: data.title,
+        overview: data.overview,
+        posterUrl: data.posterUrl,
+        backdropUrl: data.backdropUrl,
+        genres: data.genres,
+        director: data.director,
+        studio: data.studio,
+        status: data.status,
+        releaseDate: data.releaseDate,
+      })
+    );
+
     if (mediaType === "movie") {
       const slug = Slug(data.title);
       navigate(`/movies/${data.id}/${slug}/watch`);

@@ -54,7 +54,7 @@ const HostInfoBar = ({ avatarUrl, hostName, timeText, views }) => {
         {/* 🔒 Private mode (chưa có logic, placeholder) */}
         <button className="flex items-center gap-2 hover:text-white transition">
           <FaLock className="text-lg" />
-          <button onClick={() => handleWatchAlone}>Watch Alone</button>
+          <span onClick={() => handleWatchAlone}>Watch Alone</span>
         </button>
       </div>
     </div>
