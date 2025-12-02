@@ -56,7 +56,16 @@ namespace backend.Controllers
         [HttpPost("logout")]
         public IActionResult Logout()
         {
-            return Ok("Logged out successfully. Please clear your tokens on the client side.");
+            Response.Cookies.Append("RefreshToken", "", new CookieOptions
+            {
+                Expires = DateTime.UtcNow.AddDays(-1),
+                HttpOnly = true,
+                Secure = !_env.IsDevelopment(),
+                SameSite = _env.IsDevelopment() ? SameSiteMode.Lax : SameSiteMode.None,
+                Path = "/"
+            });
+
+            return Ok(new { message = "Logged out successfully" });
         }
 
         [HttpGet("email-exists")]
@@ -169,18 +178,18 @@ namespace backend.Controllers
 
         // Khởi động đăng nhập Google
         [HttpGet("login/google")]
-        public IActionResult LoginWithGoogle()
+        public IActionResult LoginWithGoogle(string returnUrl = null)
         {
-            var redirectUrl = Url.Action("ExternalLoginCallback", "Auth", new { provider = "Google" }, Request.Scheme);
+            var redirectUrl = Url.Action("ExternalLoginCallback", "Auth", new { provider = "Google", returnUrl = returnUrl }, Request.Scheme);
             var properties = _signInManager.ConfigureExternalAuthenticationProperties("Google", redirectUrl);
             return Challenge(properties, "Google");
         }
 
         // Khởi động đăng nhập GitHub
         [HttpGet("login/github")]
-        public IActionResult LoginWithGitHub()
+        public IActionResult LoginWithGitHub(string returnUrl = null)
         {
-            var redirectUrl = Url.Action("ExternalLoginCallback", "Auth", new { provider = "GitHub" }, Request.Scheme);
+            var redirectUrl = Url.Action("ExternalLoginCallback", "Auth", new { provider = "GitHub", returnUrl = returnUrl }, Request.Scheme);
             var properties = _signInManager.ConfigureExternalAuthenticationProperties("GitHub", redirectUrl);
             return Challenge(properties, "GitHub");
         }
@@ -211,9 +220,16 @@ namespace backend.Controllers
             };
             Response.Cookies.Append("RefreshToken", refreshToken, cookieOptions);
 
-            // Chuyển hướng về frontend với token (có thể điều chỉnh URL)
+            // Chuyển hướng về frontend với token và returnUrl
             string frontendUrl = "http://localhost:5173/auth";
-            return Redirect($"{frontendUrl}?token={Uri.EscapeDataString(accessToken)}");
+            var redirectUrl = $"{frontendUrl}?token={Uri.EscapeDataString(accessToken)}";
+            
+            if (!string.IsNullOrEmpty(returnUrl))
+            {
+                redirectUrl += $"&returnUrl={Uri.EscapeDataString(returnUrl)}";
+            }
+            
+            return Redirect(redirectUrl);
         }
 
         [HttpGet("profile")]

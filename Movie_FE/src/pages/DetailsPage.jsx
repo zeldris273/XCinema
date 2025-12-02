@@ -94,10 +94,14 @@ const DetailsPage = () => {
       } catch (err) {
         console.error("Error decoding token:", err);
         customSwal("Lỗi!", "Token không hợp lệ!", "error");
+        const currentPath = location.pathname + location.search;
+        localStorage.setItem('loginRedirect', currentPath);
         navigate("/auth");
       }
     } else {
       customSwal("Lỗi!", "Bạn chưa đăng nhập!", "error");
+      const currentPath = location.pathname + location.search;
+      localStorage.setItem('loginRedirect', currentPath);
       navigate("/auth");
     }
   }, [navigate]);
@@ -106,6 +110,8 @@ const DetailsPage = () => {
     const token = localStorage.getItem("accessToken");
     if (!token) {
       customSwal("Lỗi", "Please log in to add to watch list.", "error");
+      const currentPath = location.pathname + location.search;
+      localStorage.setItem('loginRedirect', currentPath);
       navigate("/auth");
       return;
     }
@@ -148,6 +154,8 @@ const DetailsPage = () => {
     const token = localStorage.getItem("accessToken");
     if (!token) {
       customSwal("Lỗi", "Please log in to rate this media.", "error");
+      const currentPath = location.pathname + location.search;
+      localStorage.setItem('loginRedirect', currentPath);
       navigate("/auth");
       return;
     }
@@ -179,6 +187,8 @@ const DetailsPage = () => {
       if (error.response?.status === 401) {
         errorMessage = "Session expired. Please log in again.";
         if (!localStorage.getItem("accessToken")) {
+          const currentPath = location.pathname + location.search;
+          localStorage.setItem('loginRedirect', currentPath);
           navigate("/auth");
         }
       } else if (error.response?.data?.error) {
@@ -194,37 +204,58 @@ const DetailsPage = () => {
   };
 
   const handlePlayNow = () => {
-    dispatch(
-      setSelectedMovie({
-        id: data.id,
-        title: data.title,
-        overview: data.overview,
-        posterUrl: data.posterUrl,
-        backdropUrl: data.backdropUrl,
-        genres: data.genres,
-        director: data.director,
-        studio: data.studio,
-        status: data.status,
-        releaseDate: data.releaseDate,
-      })
-    );
-
     if (mediaType === "movie") {
+      // MOVIE — API /watch trả về videoUrl cho MoviePlayer
+      dispatch(
+        setSelectedMovie({
+          id: data.id,
+          title: data.title,
+          overview: data.overview,
+          posterUrl: data.posterUrl,
+          backdropUrl: data.backdropUrl,
+          genres: data.genres,
+          director: data.director,
+          studio: data.studio,
+          status: data.status,
+          releaseDate: data.releaseDate,
+          videoUrl: data.videoUrl, // movie ok
+        })
+      );
+
       const slug = Slug(data.title);
       navigate(`/movies/${data.id}/${slug}/watch`);
     } else if (mediaType === "tv") {
       const firstEpisode = episodes[0];
-      if (firstEpisode) {
-        const slug = Slug(data.title);
-        const episodeNumber = firstEpisode.episode_number || 1;
-        navigate(`/tvseries/${data.id}/${slug}/episode/${episodeNumber}/watch`);
-      } else {
-        customSwal(
-          "Lỗi",
-          episodeError || "No episodes available to play.",
-          "error"
-        );
+
+      if (!firstEpisode) {
+        customSwal("Lỗi", "No episodes available!", "error");
+        return;
       }
+
+      // TV SERIES — LẤY VideoUrl TỪ Episode
+      dispatch(
+        setSelectedMovie({
+          id: data.id,
+          title: data.title,
+          overview: data.overview,
+          posterUrl: data.posterUrl,
+          backdropUrl: data.backdropUrl,
+          genres: data.genres,
+          director: data.director,
+          studio: data.studio,
+          status: data.status,
+          releaseDate: data.releaseDate,
+
+          videoUrl: firstEpisode.videoUrl, // <🔥 FIX MOST IMPORTANT LINE
+          episodeNumber: firstEpisode.episodeNumber,
+          seasonNumber: firstEpisode.seasonId,
+        })
+      );
+
+      const slug = Slug(data.title);
+      navigate(
+        `/tvseries/${data.id}/${slug}/episode/${firstEpisode.episodeNumber}/watch`
+      );
     }
   };
 

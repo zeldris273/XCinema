@@ -8,9 +8,10 @@ namespace backend.Hubs
     public class WatchPartyHub : Hub
 
     {
-        private static readonly ConcurrentDictionary<string, RoomState> ActiveRooms = new();
+        public static readonly ConcurrentDictionary<string, RoomState> ActiveRooms = new();
 
         private static readonly ConcurrentDictionary<string, string> ConnectionToUser = new();
+
 
         private readonly AuthService _authService;
 
@@ -19,7 +20,7 @@ namespace backend.Hubs
             _authService = authService;
         }
 
-        public async Task CreateRoom(string roomId, string hostUserId)
+        public async Task CreateRoom(string roomId, string hostUserId, string movieDataJson)
         {
             if (!ActiveRooms.ContainsKey(roomId))
             {
@@ -37,7 +38,8 @@ namespace backend.Hubs
                     HostDisplayName = displayName,
                     HostAvatarUrl = avatarUrl,
                     CreatedAt = DateTime.UtcNow,
-                    Viewers = new HashSet<string>()
+                    Viewers = new HashSet<string>(),
+                    MovieDataJson = movieDataJson,
                 };
 
                 await Groups.AddToGroupAsync(Context.ConnectionId, roomId);
@@ -62,6 +64,12 @@ namespace backend.Hubs
             if (ActiveRooms.TryGetValue(roomId, out var room))
             {
                 bool isHost = room.HostUserId == userId;
+                if (isHost)
+                {
+                    room.HostConnectionId = Context.ConnectionId;
+                    Console.WriteLine($"🔄 Host reconnection updated. New HostConnectionId: {room.HostConnectionId}");
+                }
+
                 ConnectionToUser[Context.ConnectionId] = userId;
                 bool wasAdded = room.Viewers.Add(userId);
 
@@ -74,8 +82,6 @@ namespace backend.Hubs
                     displayName = profile?.DisplayName ?? profile?.Email ?? $"User {userId}";
                     avatarUrl = profile?.AvatarUrl
                         ?? $"https://api.dicebear.com/7.x/bottts/svg?seed={userId}";
-
-                    Console.WriteLine($"👤 profile avatar {avatarUrl}");
                 }
                 else
                 {
@@ -98,10 +104,10 @@ namespace backend.Hubs
                     room.HostDisplayName,
                     room.HostAvatarUrl,
                     room.CreatedAt,
-                    room.Viewers.Count
+                    room.Viewers.Count,
+                    room.MovieDataJson
                 );
 
-                // 🟢 Gửi avatar và tên của user về client (để hiển thị trong ChatBox)
                 if (avatarUrl != null)
                 {
                     await Clients.Caller.SendAsync("ReceiveUserProfile", displayName, avatarUrl);
@@ -162,18 +168,26 @@ namespace backend.Hubs
 
         public async Task StartSession(string roomId)
         {
+            Console.WriteLine("🔥 StartSession CALLED for room " + roomId);
+
             if (ActiveRooms.TryGetValue(roomId, out var room))
             {
-                // Chỉ host mới có quyền bắt đầu
+                Console.WriteLine($"✅ Got room from dictionary");
+
                 if (Context.ConnectionId != room.HostConnectionId)
                 {
+                    Console.WriteLine($"❌ Not host! ConnectionId: {Context.ConnectionId} vs {room.HostConnectionId}");
                     await Clients.Caller.SendAsync("Error", "Only host can start the session!");
                     return;
                 }
 
                 room.IsStarted = true;
                 await Clients.Group(roomId).SendAsync("ReceiveStartSession");
-                System.Console.WriteLine($"▶ Room {roomId} started by host.");
+                Console.WriteLine($"▶ Room {roomId} started by host.");
+            }
+            else
+            {
+                Console.WriteLine($"❌ TryGetValue failed for room {roomId}");
             }
         }
 
@@ -249,6 +263,8 @@ namespace backend.Hubs
         public string HostAvatarUrl { get; set; } = "";
         public bool IsStarted { get; set; } = false;
         public double CurrentTime { get; set; } = 0;
+        public string MovieDataJson { get; set; } = "";
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public HashSet<string> Viewers { get; set; } = new();
     }

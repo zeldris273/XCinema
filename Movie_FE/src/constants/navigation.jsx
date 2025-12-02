@@ -21,6 +21,11 @@ export const navigation = [
     icon: <MdCategory />,
     isModal: true,
   },
+  {
+    label: "Watch Party",
+    href: "/watch-party",
+    icon: <BiSolidMoviePlay />,
+  },
 ];
 
 export const mobileNavigation = [

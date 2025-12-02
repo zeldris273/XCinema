@@ -7,8 +7,9 @@ const HostInfoBar = ({ avatarUrl, hostName, timeText, views }) => {
   const navigate = useNavigate();
 
   const handleShare = () => {
-    const currentUrl = window.location.href;
-    navigator.clipboard.writeText(currentUrl);
+    const url = new URL(window.location.href);
+    url.searchParams.delete("create");
+    navigator.clipboard.writeText(url);
     customSwal("Link copied to clipboard!", "", "success");
   };
 

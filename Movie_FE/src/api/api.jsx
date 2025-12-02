@@ -58,6 +58,11 @@ api.interceptors.response.use(
         } catch (refreshError) {
           console.error('Refresh failed:', error.config.url, refreshError.response?.data || refreshError.message);
           localStorage.removeItem('accessToken');
+          // Lưu URL hiện tại trước khi redirect
+          const currentPath = window.location.pathname + window.location.search;
+          if (currentPath !== '/auth') {
+            localStorage.setItem('loginRedirect', currentPath);
+          }
           window.location.href = '/auth';
           return Promise.reject(refreshError);
         } finally {

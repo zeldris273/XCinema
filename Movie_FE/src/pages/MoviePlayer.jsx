@@ -94,10 +94,14 @@ const MoviePlayer = () => {
       } catch (err) {
         console.error("Error decoding token:", err);
         setError("Invalid token. Please log in again.");
+        const currentPath = location.pathname + location.search;
+        localStorage.setItem('loginRedirect', currentPath);
         navigate("/auth");
       }
     } else {
       setError("You are not logged in. Please log in to continue.");
+      const currentPath = location.pathname + location.search;
+      localStorage.setItem('loginRedirect', currentPath);
       navigate("/auth");
     }
   }, [navigate]);
@@ -843,13 +847,14 @@ const MoviePlayer = () => {
             const movieData = {
               id,
               title,
+              videoUrl,
               posterUrl: seasons.length > 0 ? seasons[0].backdropUrl : null,
               overview: "Episode " + episodeNumber,
               genres: ["TV Series"],
             };
 
             localStorage.setItem("selectedMovie", JSON.stringify(movieData));
-            navigate("/create-room", { state: { movie: movieData } });
+            navigate("/watch-party/create", { state: { movie: movieData } });
           }}
           className="group relative flex items-center gap-3 bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 hover:from-yellow-500 hover:via-yellow-600 hover:to-yellow-700 text-black font-bold px-8 py-4 rounded-2xl shadow-2xl hover:shadow-yellow-400/50 transition-all duration-300 transform hover:scale-105 overflow-hidden"
         >

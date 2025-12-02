@@ -10,11 +10,8 @@ function App() {
   const [isChatbotOpen, setIsChatbotOpen] = useState(false);
   const location = useLocation();
 
-  const noHeaderRoutes = ["/watch-party"];
+  const hideHeader = /^\/watch-party\/room-\d+$/i.test(location.pathname);
 
-  const hideHeader = noHeaderRoutes.some((path) =>
-    location.pathname.startsWith(path)
-  );
   return (
     <main className="pb-14 lg:bg-0">
       {!hideHeader && <Header />}

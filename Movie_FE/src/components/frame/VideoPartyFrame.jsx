@@ -33,8 +33,8 @@ const VideoPartyFrame = ({
   handleQualityChange,
   qualityLevels,
   selectedQuality,
-  handlePlaybackRateChange,
   playbackRate,
+  handlePlaybackRateChange,
   toggleFullScreen,
   isFullScreen,
   handleMouseMove,
@@ -44,7 +44,9 @@ const VideoPartyFrame = ({
   movieTitle,
   movieBackdrop,
 }) => {
-  // If the watch party has NOT started yet → show waiting overlay
+  // ==========================================================
+  // 🕒 BEFORE START — Waiting Screen
+  // ==========================================================
   if (!sessionStarted) {
     return (
       <div className="relative flex items-center justify-center w-full h-full bg-black text-white overflow-hidden">
@@ -62,7 +64,7 @@ const VideoPartyFrame = ({
             {movieTitle}
           </h2>
 
-          {/* Spinning hourglass */}
+          {/* Waiting spinner */}
           <div className="flex justify-center gap-3 mb-4">
             <button className="bg-white/10 text-white px-5 py-2 rounded-lg flex items-center gap-2 border border-white/20">
               <span className="text-lg animate-spin">⏳</span>
@@ -70,7 +72,7 @@ const VideoPartyFrame = ({
             </button>
           </div>
 
-          {/* "Start Now" button for host */}
+          {/* Start button (Host only) */}
           {isHost && (
             <button
               onClick={handleStartSession}
@@ -85,13 +87,16 @@ const VideoPartyFrame = ({
     );
   }
 
-  // If session started → show video player
+  // ==========================================================
+  // 🎥 AFTER START — Video Mode
+  // ==========================================================
   return (
     <div
       ref={containerRef}
       className="flex-1 relative overflow-hidden bg-black"
       onMouseMove={handleMouseMove}
     >
+      {/* Video Element */}
       <video
         ref={videoRef}
         className="w-full h-full object-contain bg-black"
@@ -101,6 +106,7 @@ const VideoPartyFrame = ({
         onContextMenu={(e) => e.preventDefault()}
       />
 
+      {/* Controls */}
       {showControls && (
         <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
           {/* Time + Seekbar */}
@@ -108,6 +114,7 @@ const VideoPartyFrame = ({
             <div className="text-white text-sm whitespace-nowrap">
               {formatTime(currentTime)} / {formatTime(duration)}
             </div>
+
             <input
               type="range"
               min="0"
@@ -123,9 +130,9 @@ const VideoPartyFrame = ({
             />
           </div>
 
-          {/* Buttons Row */}
+          {/* Main Controls */}
           <div className="flex items-center justify-between">
-            {/* Play / Volume */}
+            {/* Play / Mute */}
             <div className="flex items-center space-x-3">
               <button
                 onClick={handlePlayPause}
@@ -149,6 +156,7 @@ const VideoPartyFrame = ({
                   </svg>
                 )}
               </button>
+
               <button
                 onClick={toggleMute}
                 className="text-white hover:text-yellow-500 transition text-xl"
@@ -165,6 +173,7 @@ const VideoPartyFrame = ({
               >
                 <MdReplay5 />
               </button>
+
               <button
                 onClick={handleSkipForward}
                 className="text-white hover:text-yellow-500 transition text-xl"
@@ -172,7 +181,7 @@ const VideoPartyFrame = ({
                 <MdOutlineForward5 />
               </button>
 
-              {/* Settings */}
+              {/* Settings Menu */}
               <div className="relative">
                 <button
                   onClick={() => setShowSettingsMenu(!showSettingsMenu)}
@@ -180,10 +189,13 @@ const VideoPartyFrame = ({
                 >
                   <IoMdSettings />
                 </button>
+
                 {showSettingsMenu && (
                   <div className="absolute bottom-10 right-0 w-48 bg-neutral-900 text-white rounded-lg shadow-xl z-50 border border-neutral-700">
+                    {/* Tabs */}
                     <div className="flex justify-between items-center px-4 py-3 bg-neutral-800 rounded-t-lg border-b border-neutral-700">
                       <div className="flex space-x-4">
+                        {/* Quality */}
                         <button
                           onClick={() => setSettingsTab("quality")}
                           className={`text-xl ${
@@ -194,6 +206,8 @@ const VideoPartyFrame = ({
                         >
                           <MdSignalCellularAlt />
                         </button>
+
+                        {/* Speed */}
                         <button
                           onClick={() => setSettingsTab("speed")}
                           className={`text-xl ${
@@ -205,6 +219,7 @@ const VideoPartyFrame = ({
                           <MdSchedule />
                         </button>
                       </div>
+
                       <button
                         onClick={() => setShowSettingsMenu(false)}
                         className="text-gray-400 hover:text-white text-xl"
@@ -213,7 +228,9 @@ const VideoPartyFrame = ({
                       </button>
                     </div>
 
+                    {/* Menu Content */}
                     <div className="px-2 py-2 space-y-1 max-h-64 overflow-y-auto text-sm">
+                      {/* QUALITY LIST */}
                       {settingsTab === "quality" && (
                         <>
                           <button
@@ -226,6 +243,7 @@ const VideoPartyFrame = ({
                           >
                             Auto
                           </button>
+
                           {qualityLevels.map((level, index) => (
                             <button
                               key={index}
@@ -241,11 +259,13 @@ const VideoPartyFrame = ({
                           ))}
                         </>
                       )}
+
+                      {/* SPEED LIST */}
                       {settingsTab === "speed" &&
                         [0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((rate) => (
                           <button
                             key={rate}
-                            onClick={() => handlePlaybackRateChange(rate)}
+                            onClick={() => handlePlaybackRateChange(rate)} // 🔥 FIXED
                             className={`block w-full text-left px-3 py-2 rounded hover:bg-neutral-800 transition ${
                               playbackRate === rate
                                 ? "text-yellow-500 font-bold"

@@ -11,10 +11,7 @@ const getUserIdFromToken = () => {
     if (!token) return null;
 
     const decoded = jwtDecode(token);
-    const userId =
-      decoded[
-        "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"
-      ];
+    const userId = decoded["sub"];
 
     return userId ? parseInt(userId, 10) : null;
   } catch (error) {

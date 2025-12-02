@@ -32,6 +32,7 @@ const Watchlist = () => {
       console.error("Error fetching watchlist:", err.response || err);
       if (err.response?.status === 401) {
         customSwal("Lỗi", "Session expired. Please log in again.", "error");
+        localStorage.setItem('loginRedirect', '/user/watchlist');
         navigate("/auth");
       } else {
         setError(err.response?.data?.error || "Failed to load watch list.");
@@ -48,6 +49,7 @@ const Watchlist = () => {
         "Please log in to remove from watch list.",
         "warning"
       );
+      localStorage.setItem('loginRedirect', '/user/watchlist');
       navigate("/auth");
       return;
     }
@@ -67,6 +69,7 @@ const Watchlist = () => {
       console.error("Error removing from watchlist:", err);
       if (err.response?.status === 401) {
         customSwal("Lỗi", "Session expired. Please log in again.", "error");
+        localStorage.setItem('loginRedirect', '/user/watchlist');
         navigate("/auth");
       } else {
         customSwal(

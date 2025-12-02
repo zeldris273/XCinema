@@ -4498,11 +4498,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\XCinema\\Movie_BE\\backend.csproj",
+      "projectUniqueName": "E:\\XCinema\\Movie_BE\\backend.csproj",
       "projectName": "backend",
-      "projectPath": "D:\\XCinema\\Movie_BE\\backend.csproj",
+      "projectPath": "E:\\XCinema\\Movie_BE\\backend.csproj",
       "packagesPath": "C:\\Users\\nvh\\.nuget\\packages\\",
-      "outputPath": "D:\\XCinema\\Movie_BE\\obj\\",
+      "outputPath": "E:\\XCinema\\Movie_BE\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\nvh\\AppData\\Roaming\\NuGet\\NuGet.Config"

@@ -68,10 +68,22 @@ export default function AuthPage() {
     window.scrollTo(0, 0);
     const urlParams = new URLSearchParams(location.search);
     const token = urlParams.get("token");
+    const returnUrl = urlParams.get("returnUrl");
+    
     if (token) {
       localStorage.setItem("accessToken", token);
       dispatch(setToken(token));
-      navigate("/");
+      
+      // Redirect về trang trước đó hoặc trang chủ
+      const redirectTo = returnUrl || localStorage.getItem('loginRedirect') || '/';
+      localStorage.removeItem('loginRedirect'); // Xóa loginRedirect sau khi sử dụng
+      navigate(redirectTo);
+    } else {
+      // Nếu chưa có loginRedirect trong localStorage và không phải trang auth, lưu lại
+      const savedRedirect = localStorage.getItem('loginRedirect');
+      if (!savedRedirect && location.state?.from) {
+        localStorage.setItem('loginRedirect', location.state.from);
+      }
     }
   }, [location, navigate, dispatch]);
 
@@ -228,7 +240,11 @@ export default function AuthPage() {
         }
       } else if (isLogin) {
         await dispatch(loginUser({ email: email.trim(), password })).unwrap();
-        navigate("/");
+        
+        // Redirect về trang trước đó hoặc trang chủ
+        const redirectTo = localStorage.getItem('loginRedirect') || '/';
+        localStorage.removeItem('loginRedirect');
+        navigate(redirectTo);
       } else {
         await dispatch(
           registerUser({ email: email.trim(), password, otp: otp.trim() })
@@ -239,7 +255,11 @@ export default function AuthPage() {
           "success"
         );
         resetForm();
-        navigate("/");
+        
+        // Redirect về trang trước đó hoặc trang chủ
+        const redirectTo = localStorage.getItem('loginRedirect') || '/';
+        localStorage.removeItem('loginRedirect');
+        navigate(redirectTo);
       }
     } catch (err) {
       console.error("Auth error:", err);
@@ -282,14 +302,18 @@ export default function AuthPage() {
 
   // Social login
   const handleGoogleLogin = () => {
+    // Lưu URL trước đó (nếu có) hoặc trang chủ
+    const returnUrl = localStorage.getItem('loginRedirect') || '/';
     window.location.href = `${
       import.meta.env.VITE_API_URL
-    }/api/auth/login/google`;
+    }/api/auth/login/google?returnUrl=${encodeURIComponent(returnUrl)}`;
   };
   const handleGitHubLogin = () => {
+    // Lưu URL trước đó (nếu có) hoặc trang chủ
+    const returnUrl = localStorage.getItem('loginRedirect') || '/';
     window.location.href = `${
       import.meta.env.VITE_API_URL
-    }/api/auth/login/github`;
+    }/api/auth/login/github?returnUrl=${encodeURIComponent(returnUrl)}`;
   };
 
   // UI helper

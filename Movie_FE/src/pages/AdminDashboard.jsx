@@ -126,10 +126,12 @@ const AdminDashboard = () => {
       } catch (err) {
         console.error("Error decoding token:", err);
         customSwal("Lỗi!", "Token không hợp lệ!", "error");
+        localStorage.setItem('loginRedirect', '/admin-dashboard');
         navigate("/auth");
       }
     } else {
       customSwal("Lỗi!", "Bạn chưa đăng nhập!", "error");
+      localStorage.setItem('loginRedirect', '/admin-dashboard');
       navigate("/auth");
     }
   }, [navigate]);

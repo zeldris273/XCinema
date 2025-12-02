@@ -11,8 +11,9 @@ import AdminDashboard from "../pages/AdminDashboard";
 import NotFoundPage from "../pages/NotFoundPage";
 import ProfilePage from "../pages/ProfilePage";
 import GenrePage from "../pages/GenrePage";
-import WatchPartyPage from "../pages/WatchPartyPage";
-import CreateRoom from "../pages/CreateRoom";
+import CreateWatchParty from "../pages/WatchParty/CreateWatchParty";
+import WatchPartyHome from "../pages/WatchParty/WatchPartyHome";
+import WatchPartyRoom from "../pages/WatchParty/WatchPartyRoom";
 
 const router = createBrowserRouter([
   {
@@ -47,10 +48,13 @@ const router = createBrowserRouter([
         path: "tvseries/:id/:title/episode/:episodeNumber/watch",
         element: <MoviePlayer />,
       },
-      { path: "create-room", element: <CreateRoom /> },
       {
         path: "watch-party",
-        element: <WatchPartyPage />,
+        children: [
+          { index: true, element: <WatchPartyHome /> },
+          { path: "create", element: <CreateWatchParty /> },
+          { path: ":roomId", element: <WatchPartyRoom /> },
+        ],
       },
       {
         path: "search",

@@ -88,6 +88,8 @@ builder.Services.AddScoped<S3Service>();
 
 // Đăng ký MovieChatbotSearchService
 builder.Services.AddSingleton<MovieChatbotSearchService>();
+builder.Services.AddSingleton<RoomService>();
+
 
 // Thêm cấu hình xác thực JWT
 builder.Services.AddAuthentication(options =>
