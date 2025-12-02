@@ -130,6 +130,7 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddSignalR();
+builder.Services.AddHostedService<WatchPartySchedulerService>();
 
 // Thêm CORS
 builder.Services.AddCors(options =>

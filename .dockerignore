@@ -1,0 +1,10 @@
+.git/                                                                                                               │
+│  .gitignore                                                                                                          │
+│  *.md                                                                                                                │
+│  .env                                                                                                                │
+│  .vscode/                                                                                                            │
+│  .vs/                                                                                                                │
+│  */bin/                                                                                                              │
+│  */obj/                                                                                                              │
+│  */node_modules/                                                                                                     │
+│  */dist/     

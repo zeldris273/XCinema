@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import theater from "../../assets/theater.jpg";
 import api from "../../api/api";
 import CreateRoomGuide from "../../components/watch-party/CreateRoomGuide";
+import customSwal from "../../utils/customSwal";
+import * as signalR from "@microsoft/signalr";
 
 const WatchPartyHome = () => {
   const [showGuide, setShowGuide] = useState(false);
@@ -48,6 +50,52 @@ const WatchPartyHome = () => {
   const handleRejoin = (roomId) => {
     // join lại phòng (không tạo mới)
     navigate(`/watch-party/${roomId}`);
+  };
+
+  const handleEndRoom = async (roomId) => {
+    const result = await customSwal(
+      "End Watch Party?",
+      "This will close the room for all viewers. Are you sure?",
+      "warning",
+      true, // showCancelButton
+      "Yes, End Room",
+      "Cancel"
+    );
+
+    if (result.isConfirmed) {
+      try {
+        // Connect to SignalR to send EndSession
+        const hubUrl = `${import.meta.env.VITE_API_URL}/watchpartyhub`;
+        const connection = new signalR.HubConnectionBuilder()
+          .withUrl(hubUrl)
+          .withAutomaticReconnect()
+          .build();
+
+        await connection.start();
+        console.log("✅ Connected to hub for ending room");
+
+        await connection.invoke("EndSession", roomId);
+        console.log("✅ Room ended:", roomId);
+
+        await connection.stop();
+
+        customSwal(
+          "Room Ended",
+          "The watch party has been closed successfully.",
+          "success"
+        );
+
+        // Refresh room list
+        handleOpenManage();
+      } catch (err) {
+        console.error("❌ Failed to end room:", err);
+        customSwal(
+          "Error",
+          "Failed to end the room. Please try again.",
+          "error"
+        );
+      }
+    }
   };
 
   return (
@@ -129,12 +177,20 @@ const WatchPartyHome = () => {
                         </div>
                       </div>
 
-                      <button
-                        onClick={() => handleRejoin(room.roomId)}
-                        className="px-3 py-2 text-xs bg-yellow-400 text-black font-semibold rounded-full hover:bg-yellow-500 transition"
-                      >
-                        Join lại
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleRejoin(room.roomId)}
+                          className="px-3 py-2 text-xs bg-yellow-400 text-black font-semibold rounded-full hover:bg-yellow-500 transition"
+                        >
+                          Join lại
+                        </button>
+                        <button
+                          onClick={() => handleEndRoom(room.roomId)}
+                          className="px-3 py-2 text-xs bg-red-500 text-white font-semibold rounded-full hover:bg-red-600 transition"
+                        >
+                          End Room
+                        </button>
+                      </div>
                     </div>
                   );
                 })}

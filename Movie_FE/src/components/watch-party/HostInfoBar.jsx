@@ -1,10 +1,43 @@
-import React, { use } from "react";
-import { FaEye, FaShareAlt, FaLock } from "react-icons/fa";
+import React, { useState, useEffect } from "react";
+import { FaEye, FaShareAlt, FaLock, FaClock } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import customSwal from "../../utils/customSwal";
 
-const HostInfoBar = ({ avatarUrl, hostName, timeText, views }) => {
+const HostInfoBar = ({ avatarUrl, hostName, timeText, views, scheduledStartTime, autoStart }) => {
   const navigate = useNavigate();
+  const [countdown, setCountdown] = useState("");
+
+  useEffect(() => {
+    if (!autoStart || !scheduledStartTime) return;
+
+    const updateCountdown = () => {
+      const now = new Date();
+      const scheduled = new Date(scheduledStartTime);
+      const diff = scheduled - now;
+
+      if (diff <= 0) {
+        setCountdown("Starting now...");
+        return;
+      }
+
+      const hours = Math.floor(diff / 3600000);
+      const minutes = Math.floor((diff % 3600000) / 60000);
+      const seconds = Math.floor((diff % 60000) / 1000);
+
+      if (hours > 0) {
+        setCountdown(`${hours}h ${minutes}m ${seconds}s`);
+      } else if (minutes > 0) {
+        setCountdown(`${minutes}m ${seconds}s`);
+      } else {
+        setCountdown(`${seconds}s`);
+      }
+    };
+
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
+
+    return () => clearInterval(interval);
+  }, [autoStart, scheduledStartTime]);
 
   const handleShare = () => {
     const url = new URL(window.location.href);
@@ -37,6 +70,14 @@ const HostInfoBar = ({ avatarUrl, hostName, timeText, views }) => {
 
       {/* Right: Actions */}
       <div className="flex items-center gap-6 text-gray-400 text-sm">
+        {/* ⏰ Countdown if scheduled */}
+        {autoStart && scheduledStartTime && countdown && (
+          <div className="flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/30 px-3 py-1.5 rounded-lg">
+            <FaClock className="text-lg text-yellow-400 animate-pulse" />
+            <span className="text-yellow-400 font-semibold">{countdown}</span>
+          </div>
+        )}
+
         {/* 👁 Viewer count */}
         <div className="flex items-center gap-2">
           <FaEye className="text-lg" />

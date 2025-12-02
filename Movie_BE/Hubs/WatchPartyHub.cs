@@ -12,7 +12,6 @@ namespace backend.Hubs
 
         private static readonly ConcurrentDictionary<string, string> ConnectionToUser = new();
 
-
         private readonly AuthService _authService;
 
         public WatchPartyHub(AuthService authService)
@@ -20,7 +19,7 @@ namespace backend.Hubs
             _authService = authService;
         }
 
-        public async Task CreateRoom(string roomId, string hostUserId, string movieDataJson)
+        public async Task CreateRoom(string roomId, string hostUserId, string movieDataJson, bool autoStart = false, DateTime? scheduledStartTime = null)
         {
             if (!ActiveRooms.ContainsKey(roomId))
             {
@@ -40,7 +39,11 @@ namespace backend.Hubs
                     CreatedAt = DateTime.UtcNow,
                     Viewers = new HashSet<string>(),
                     MovieDataJson = movieDataJson,
+                    AutoStart = autoStart,
+                    ScheduledStartTime = scheduledStartTime
                 };
+
+                Console.WriteLine($"🎬 Movie data saved in room: {(string.IsNullOrEmpty(movieDataJson) ? "EMPTY" : movieDataJson.Substring(0, Math.Min(100, movieDataJson.Length)))}...");
 
                 await Groups.AddToGroupAsync(Context.ConnectionId, roomId);
                 ConnectionToUser[Context.ConnectionId] = hostUserId;
@@ -48,7 +51,8 @@ namespace backend.Hubs
                 ActiveRooms[roomId].Viewers.Add(hostUserId);
 
                 await Clients.Caller.SendAsync("RoomCreated", roomId, true);
-                System.Console.WriteLine($"✅ Created room {roomId} by Host {hostUserId}");
+                System.Console.WriteLine($"✅ Created room {roomId} by Host {hostUserId}" +
+                    (scheduledStartTime.HasValue ? $" scheduled for {scheduledStartTime.Value:yyyy-MM-dd HH:mm:ss} UTC" : ""));
             }
             else
             {
@@ -96,6 +100,8 @@ namespace backend.Hubs
                         .SendAsync("ReceiveSystemMessage", $"{displayName} vừa tham gia phòng");
                 }
 
+                Console.WriteLine($"📤 Sending JoinedRoom to {displayName}: movieDataJson length = {(string.IsNullOrEmpty(room.MovieDataJson) ? 0 : room.MovieDataJson.Length)}");
+
                 await Clients.Caller.SendAsync(
                     "JoinedRoom",
                     roomId,
@@ -105,7 +111,9 @@ namespace backend.Hubs
                     room.HostAvatarUrl,
                     room.CreatedAt,
                     room.Viewers.Count,
-                    room.MovieDataJson
+                    room.MovieDataJson,
+                    room.AutoStart,
+                    room.ScheduledStartTime
                 );
 
                 if (avatarUrl != null)
@@ -123,7 +131,8 @@ namespace backend.Hubs
             }
             else
             {
-                await Clients.Caller.SendAsync("JoinedRoom", roomId, false, null, null, 0);
+                await Clients.Caller.SendAsync("JoinedRoom", roomId, false, null, null, null, DateTime.UtcNow, 0, null, false, null);
+                Console.WriteLine($"❌ Room {roomId} not found");
             }
         }
 
@@ -151,7 +160,6 @@ namespace backend.Hubs
 
                         Console.WriteLine($"👋 {displayName} left {room.RoomId}");
 
-                        // 🟠 Thông báo system khi người rời phòng
                         await Clients.Group(room.RoomId)
                             .SendAsync("ReceiveSystemMessage", $"{displayName} vừa rời phòng");
 
@@ -193,15 +201,20 @@ namespace backend.Hubs
 
         public async Task EndSession(string roomId)
         {
+            if (!ActiveRooms.TryGetValue(roomId, out var room))
+            {
+                await Clients.Caller.SendAsync("Error", "Room not found.");
+                return;
+            }
 
+            await Clients.Group(roomId).SendAsync("ReceiveSystemMessage", "The host has ended this watch party. Redirecting...");
             await Clients.Group(roomId).SendAsync("ReceiveEndSession");
 
             ActiveRooms.Remove(roomId, out _);
 
-            await Task.Delay(200); // đảm bảo client nhận tín hiệu trước khi xóa
-            await Groups.RemoveFromGroupAsync(Context.ConnectionId, roomId);
+            Console.WriteLine($"✅ Session {roomId} ended and room cleared by host.");
 
-            Console.WriteLine($"✅ Session {roomId} ended and room cleared.");
+            await Task.Delay(1000); // Give clients time to process
         }
 
 
@@ -215,7 +228,7 @@ namespace backend.Hubs
 
             await Clients.Group(roomId).SendAsync("ReceiveChat", user, message, avatarUrl);
 
-            Console.WriteLine($"💬 [{roomId}] {user}: {message}");
+            Console.WriteLine($" [{roomId}] {user}: {message}");
         }
 
 
@@ -266,6 +279,8 @@ namespace backend.Hubs
         public string MovieDataJson { get; set; } = "";
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? ScheduledStartTime { get; set; } = null;
+        public bool AutoStart { get; set; } = false;
         public HashSet<string> Viewers { get; set; } = new();
     }
 }

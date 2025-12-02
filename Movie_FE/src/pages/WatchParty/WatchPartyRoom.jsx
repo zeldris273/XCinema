@@ -126,31 +126,76 @@ const WatchPartyRoom = () => {
         hostAvatarUrl,
         createdAt,
         count,
-        movieDataJson
+        movieDataJson,
+        autoStart,
+        scheduledStartTime
       ) => {
         console.log("✅ JoinedRoom event received", {
           roomId,
           isHostFromServer,
           count,
+          autoStart,
+          scheduledStartTime,
+          movieDataJsonLength: movieDataJson ? movieDataJson.length : 0,
+          movieDataJsonPreview: movieDataJson
+            ? movieDataJson.substring(0, 100)
+            : "NULL",
         });
 
         setIsHost(isHostFromServer);
         setViewerCount(count || 1);
 
-        setHostInfo({
+        const hostInfoData = {
           hostUserId,
           hostDisplayName,
           hostAvatar: hostAvatarUrl,
           createdAt,
-        });
+          autoStart,
+          scheduledStartTime,
+        };
+
+        console.log("🏠 Setting hostInfo:", hostInfoData);
+        setHostInfo(hostInfoData);
 
         if (movieDataJson) {
           try {
             const parsed = JSON.parse(movieDataJson);
+            console.log("🎬 Movie data parsed:", parsed);
             setMovie(parsed);
             localStorage.setItem("selectedMovie", JSON.stringify(parsed));
           } catch (err) {
             console.error("❌ Failed to parse movie data", err);
+          }
+        } else {
+          // Try to get from localStorage if server doesn't have it
+          console.log("⚠️ No movieDataJson from server, checking localStorage");
+          const cachedMovie = localStorage.getItem("selectedMovie");
+          if (cachedMovie) {
+            try {
+              const parsed = JSON.parse(cachedMovie);
+              console.log("📦 Using cached movie data:", parsed);
+              setMovie(parsed);
+            } catch (err) {
+              console.error("❌ Failed to parse cached movie data", err);
+            }
+          }
+        }
+
+        // Show scheduled info if autoStart is enabled
+        if (autoStart && scheduledStartTime) {
+          const scheduledDate = new Date(scheduledStartTime);
+          const now = new Date();
+          const timeDiff = scheduledDate - now;
+
+          if (timeDiff > 0) {
+            const minutes = Math.floor(timeDiff / 60000);
+            const seconds = Math.floor((timeDiff % 60000) / 1000);
+
+            setSystemMessages((prev) => [
+              ...prev,
+              ` This session is scheduled to start automatically at ${scheduledDate.toLocaleString()}` +
+                ` (in ${minutes}m ${seconds}s)`,
+            ]);
           }
         }
       }
@@ -283,10 +328,28 @@ const WatchPartyRoom = () => {
         const movieData = localStorage.getItem("selectedMovie");
 
         if (isCreatingRoom && movieData) {
-          await hub.invoke("CreateRoom", roomId, currentUser, movieData);
+          const autoStart = localStorage.getItem("autoStart") === "true";
+          const scheduledStartTimeStr =
+            localStorage.getItem("scheduledStartTime");
 
-          // 🔥 Clean up flag
+          let scheduledStartTime = null;
+          if (autoStart && scheduledStartTimeStr) {
+            scheduledStartTime = new Date(scheduledStartTimeStr);
+          }
+
+          await hub.invoke(
+            "CreateRoom",
+            roomId,
+            currentUser,
+            movieData,
+            autoStart,
+            scheduledStartTime
+          );
+
+          // 🔥 Clean up flags
           localStorage.removeItem("isCreatingRoom");
+          localStorage.removeItem("autoStart");
+          localStorage.removeItem("scheduledStartTime");
         }
 
         await hub.invoke("JoinRoom", roomId, currentUser);
@@ -563,10 +626,22 @@ const WatchPartyRoom = () => {
 
         {/* Host Info */}
         <HostInfoBar
-          avatarUrl={hostInfo.hostAvatar}
-          hostName={hostInfo.hostDisplayName || `User ${hostInfo.hostUserId}`}
-          timeText={`Created ${timeAgo(hostInfo.createdAt)}`}
+          avatarUrl={
+            hostInfo.hostAvatar ||
+            `https://api.dicebear.com/7.x/bottts/svg?seed=${hostInfo.hostUserId}`
+          }
+          hostName={
+            hostInfo.hostDisplayName ||
+            `User ${hostInfo.hostUserId || "Unknown"}`
+          }
+          timeText={
+            hostInfo.createdAt
+              ? `Created ${timeAgo(hostInfo.createdAt)}`
+              : "Just now"
+          }
           views={viewerCount}
+          scheduledStartTime={hostInfo.scheduledStartTime}
+          autoStart={hostInfo.autoStart}
         />
 
         {/* Movie Info */}

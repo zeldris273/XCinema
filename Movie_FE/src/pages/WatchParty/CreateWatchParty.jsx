@@ -9,6 +9,8 @@ const CreateWatchParty = () => {
   const [autoStart, setAutoStart] = useState(false);
   const [privateRoom, setPrivateRoom] = useState(false);
   const [movie, setMovie] = useState(null);
+  const [scheduledDate, setScheduledDate] = useState("");
+  const [scheduledTime, setScheduledTime] = useState("");
 
   const navigate = useNavigate();
 
@@ -39,6 +41,22 @@ const CreateWatchParty = () => {
   }, [selectedMovie]);
 
   const handleCreate = async () => {
+    // Validate scheduled time if autoStart is enabled
+    if (autoStart) {
+      if (!scheduledDate || !scheduledTime) {
+        customSwal("Error", "Please select both date and time for scheduled start.", "error");
+        return;
+      }
+
+      const scheduledDateTime = new Date(`${scheduledDate}T${scheduledTime}`);
+      const now = new Date();
+      
+      if (scheduledDateTime <= now) {
+        customSwal("Error", "Scheduled time must be in the future.", "error");
+        return;
+      }
+    }
+
     const roomId = "room-" + Math.floor(Math.random() * 100000);
     let currentUser = null;
 
@@ -62,6 +80,16 @@ const CreateWatchParty = () => {
     localStorage.setItem("selectedMovie", movieDataJson);
     localStorage.setItem("isCreatingRoom", "true");
     localStorage.setItem("pendingRoomId", roomId);
+
+    // Save scheduling info
+    if (autoStart && scheduledDate && scheduledTime) {
+      const scheduledDateTime = new Date(`${scheduledDate}T${scheduledTime}`);
+      localStorage.setItem("scheduledStartTime", scheduledDateTime.toISOString());
+      localStorage.setItem("autoStart", "true");
+    } else {
+      localStorage.removeItem("scheduledStartTime");
+      localStorage.removeItem("autoStart");
+    }
 
     toast.success(`Creating Room: ${roomId}`, {
       position: "bottom-right",
@@ -138,7 +166,7 @@ const CreateWatchParty = () => {
                 You can start the session manually or automatically based on the
                 schedule.
               </p>
-              <label className="flex items-center justify-between cursor-pointer">
+              <label className="flex items-center justify-between cursor-pointer mb-4">
                 <span className="text-base">Start automatically</span>
                 <div
                   className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors duration-300 ${
@@ -153,6 +181,39 @@ const CreateWatchParty = () => {
                   />
                 </div>
               </label>
+
+              {autoStart && (
+                <div className="space-y-3 mt-4 p-4 bg-[#2a2a2e] rounded-lg border border-neutral-700">
+                  <div>
+                    <label className="block text-sm text-gray-300 mb-2">
+                      📅 Date
+                    </label>
+                    <input
+                      type="date"
+                      value={scheduledDate}
+                      onChange={(e) => setScheduledDate(e.target.value)}
+                      min={new Date().toISOString().split('T')[0]}
+                      className="w-full bg-[#1a1a1d] border border-neutral-600 rounded-lg px-3 py-2 text-sm text-white outline-none focus:ring-2 focus:ring-yellow-400 transition"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-300 mb-2">
+                      ⏰ Time
+                    </label>
+                    <input
+                      type="time"
+                      value={scheduledTime}
+                      onChange={(e) => setScheduledTime(e.target.value)}
+                      className="w-full bg-[#1a1a1d] border border-neutral-600 rounded-lg px-3 py-2 text-sm text-white outline-none focus:ring-2 focus:ring-yellow-400 transition"
+                    />
+                  </div>
+                  {scheduledDate && scheduledTime && (
+                    <p className="text-xs text-yellow-400 mt-2">
+                      🎬 Session will start automatically on {new Date(`${scheduledDate}T${scheduledTime}`).toLocaleString()}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* 3. Privacy */}
