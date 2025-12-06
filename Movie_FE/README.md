@@ -96,11 +96,40 @@ The MoviePlayer frontend is a React-based application designed to provide users 
    - `moment@2.30.1`
    - `react-circular-progressbar@2.2.0`
    - `jwt-decode@4.0.0`
-  
+
 3. **To run**:
-    ```bash
+
+   ```bash
    npm run dev
    ```
+
+4.
+
+Step 1 — Tạo môi trường ảo
+Windows:
+python -m venv venv
+venv\Scripts\activate
+
+macOS/Linux:
+python3 -m venv venv
+source venv/bin/activate
+
+Step 2 — Cài đặt thư viện cần thiết
+
+Dùng đúng versions để tránh lỗi NumPy / Surprise:
+
+pip install fastapi uvicorn pandas "numpy<2" "scikit-learn<1.4" "scikit-surprise==1.1.3"
+
+Step 3 — Chạy API
+Nếu file nằm tại movie_recommends/hybrid_api.py:
+uvicorn movie_recommends.hybrid_api:app --reload
+
+Nếu bạn chạy từ cùng thư mục chứa file:
+uvicorn hybrid_api:app --reload
+
+API chạy tại:
+
+http://localhost:8000
 
 ## Usage
 

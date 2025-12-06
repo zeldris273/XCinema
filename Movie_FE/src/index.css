@@ -33,6 +33,16 @@ body::-webkit-scrollbar {
   display: none;
 }
 
+/* Hide scrollbar for specific elements */
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 
 .Toastify__toast-container {
   z-index: 999999 !important;

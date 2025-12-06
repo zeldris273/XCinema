@@ -2,8 +2,17 @@ import React, { useState, useEffect } from "react";
 import { FaEye, FaShareAlt, FaLock, FaClock } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import customSwal from "../../utils/customSwal";
+import Slug from "../../utils/Slug";
 
-const HostInfoBar = ({ avatarUrl, hostName, timeText, views, scheduledStartTime, autoStart }) => {
+const HostInfoBar = ({
+  avatarUrl,
+  hostName,
+  timeText,
+  views,
+  scheduledStartTime,
+  autoStart,
+  movie,
+}) => {
   const navigate = useNavigate();
   const [countdown, setCountdown] = useState("");
 
@@ -47,7 +56,21 @@ const HostInfoBar = ({ avatarUrl, hostName, timeText, views, scheduledStartTime,
   };
 
   const handleWatchAlone = () => {
-    navigate("");
+    if (!movie) {
+      customSwal("Error", "Movie information not available", "error");
+      return;
+    }
+
+    // Determine if it's a movie or TV series
+    const isTvSeries =
+      movie.seasonNumber !== undefined || movie.episodeNumber !== undefined;
+    const slug = Slug(movie.title);
+
+    if (isTvSeries) {
+      navigate(`/tvseries/${movie.id}/${slug}`);
+    } else {
+      navigate(`/movies/${movie.id}/${slug}`);
+    }
   };
 
   return (
@@ -93,10 +116,13 @@ const HostInfoBar = ({ avatarUrl, hostName, timeText, views, scheduledStartTime,
           <span>Share</span>
         </button>
 
-        {/* 🔒 Private mode (chưa có logic, placeholder) */}
-        <button className="flex items-center gap-2 hover:text-white transition">
+        {/* 🔒 Watch Alone */}
+        <button
+          onClick={handleWatchAlone}
+          className="flex items-center gap-2 hover:text-white transition"
+        >
           <FaLock className="text-lg" />
-          <span onClick={() => handleWatchAlone}>Watch Alone</span>
+          <span>Watch Alone</span>
         </button>
       </div>
     </div>

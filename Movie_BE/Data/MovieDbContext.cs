@@ -27,6 +27,8 @@ namespace backend.Data
         public DbSet<TvSeriesGenre> TvSeriesGenres { get; set; }
 
         public DbSet<ViewLog> ViewLogs { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
+        public DbSet<Like> Likes { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -79,6 +81,65 @@ namespace backend.Data
                 )
                 .HasIndex(p => p.SearchVector)
                 .HasMethod("GIN");
+
+            // Notification relationships
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.User)
+                .WithMany()
+                .HasForeignKey(n => n.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.RepliedByUser)
+                .WithMany()
+                .HasForeignKey(n => n.RepliedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.Comment)
+                .WithMany()
+                .HasForeignKey(n => n.CommentId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.TvSeries)
+                .WithMany()
+                .HasForeignKey(n => n.TvSeriesId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Index for faster notification queries
+            modelBuilder.Entity<Notification>()
+                .HasIndex(n => new { n.UserId, n.CreatedAt });
+
+            // Like relationships
+            modelBuilder.Entity<Like>()
+                .HasOne(l => l.User)
+                .WithMany()
+                .HasForeignKey(l => l.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Like>()
+                .HasOne(l => l.Movie)
+                .WithMany()
+                .HasForeignKey(l => l.MovieId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Like>()
+                .HasOne(l => l.TvSeries)
+                .WithMany()
+                .HasForeignKey(l => l.TvSeriesId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Like>()
+                .HasOne(l => l.Comment)
+                .WithMany()
+                .HasForeignKey(l => l.CommentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Unique constraint: one user can only have one like/dislike per movie/series/comment
+            modelBuilder.Entity<Like>()
+                .HasIndex(l => new { l.UserId, l.MovieId, l.TvSeriesId, l.CommentId })
+                .IsUnique();
         }
 
     }

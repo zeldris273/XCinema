@@ -4,6 +4,8 @@ import api from "../api/api";
 import { jwtDecode } from "jwt-decode";
 import VideoFrame from "../components/frame/VideoFrame";
 import RecommendedMovies from "../components/common/RecommendedMovies";
+import LikeDislikeButton from "../components/common/LikeDislikeButton";
+import CommentLikeButton from "../components/common/CommentLikeButton";
 
 const MoviePlayer = () => {
   const { id, title, episodeNumber } = useParams();
@@ -95,13 +97,13 @@ const MoviePlayer = () => {
         console.error("Error decoding token:", err);
         setError("Invalid token. Please log in again.");
         const currentPath = location.pathname + location.search;
-        localStorage.setItem('loginRedirect', currentPath);
+        localStorage.setItem("loginRedirect", currentPath);
         navigate("/auth");
       }
     } else {
       setError("You are not logged in. Please log in to continue.");
       const currentPath = location.pathname + location.search;
-      localStorage.setItem('loginRedirect', currentPath);
+      localStorage.setItem("loginRedirect", currentPath);
       navigate("/auth");
     }
   }, [navigate]);
@@ -356,6 +358,9 @@ const MoviePlayer = () => {
       ]);
       setNewComment("");
       await fetchComments();
+
+      // Trigger notification refresh
+      window.dispatchEvent(new CustomEvent("refreshNotifications"));
     } catch (err) {
       setError(
         `Failed to add comment: ${
@@ -391,6 +396,9 @@ const MoviePlayer = () => {
       setReplyText("");
       setReplyCommentId(null);
       await fetchComments();
+
+      // Trigger notification refresh
+      window.dispatchEvent(new CustomEvent("refreshNotifications"));
     } catch (err) {
       setError(
         "Failed to reply to comment: " +
@@ -613,6 +621,10 @@ const MoviePlayer = () => {
             {comment.commentText}
           </p>
         )}
+
+        <div className="flex items-center gap-4 mb-3">
+          <CommentLikeButton commentId={comment.id} />
+        </div>
 
         <div className="flex items-center gap-4">
           <button

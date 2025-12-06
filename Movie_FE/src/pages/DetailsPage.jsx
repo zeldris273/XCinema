@@ -10,10 +10,11 @@ import api from "../api/api";
 import { FaStar } from "react-icons/fa";
 import { FaUser } from "react-icons/fa";
 import { jwtDecode } from "jwt-decode";
-import { Slug } from "../utils/Slug";
+import Slug from "../utils/Slug";
 import customSwal from "../utils/customSwal";
 import { useDispatch } from "react-redux";
 import { setSelectedMovie } from "../store/movieSlice.js";
+import LikeDislikeButton from "../components/common/LikeDislikeButton";
 
 const DetailsPage = () => {
   const { id, title: urlTitle } = useParams();
@@ -95,13 +96,13 @@ const DetailsPage = () => {
         console.error("Error decoding token:", err);
         customSwal("Lỗi!", "Token không hợp lệ!", "error");
         const currentPath = location.pathname + location.search;
-        localStorage.setItem('loginRedirect', currentPath);
+        localStorage.setItem("loginRedirect", currentPath);
         navigate("/auth");
       }
     } else {
       customSwal("Lỗi!", "Bạn chưa đăng nhập!", "error");
       const currentPath = location.pathname + location.search;
-      localStorage.setItem('loginRedirect', currentPath);
+      localStorage.setItem("loginRedirect", currentPath);
       navigate("/auth");
     }
   }, [navigate]);
@@ -111,7 +112,7 @@ const DetailsPage = () => {
     if (!token) {
       customSwal("Lỗi", "Please log in to add to watch list.", "error");
       const currentPath = location.pathname + location.search;
-      localStorage.setItem('loginRedirect', currentPath);
+      localStorage.setItem("loginRedirect", currentPath);
       navigate("/auth");
       return;
     }
@@ -155,7 +156,7 @@ const DetailsPage = () => {
     if (!token) {
       customSwal("Lỗi", "Please log in to rate this media.", "error");
       const currentPath = location.pathname + location.search;
-      localStorage.setItem('loginRedirect', currentPath);
+      localStorage.setItem("loginRedirect", currentPath);
       navigate("/auth");
       return;
     }
@@ -188,7 +189,7 @@ const DetailsPage = () => {
         errorMessage = "Session expired. Please log in again.";
         if (!localStorage.getItem("accessToken")) {
           const currentPath = location.pathname + location.search;
-          localStorage.setItem('loginRedirect', currentPath);
+          localStorage.setItem("loginRedirect", currentPath);
           navigate("/auth");
         }
       } else if (error.response?.data?.error) {

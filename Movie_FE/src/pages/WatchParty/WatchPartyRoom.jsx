@@ -112,7 +112,7 @@ const WatchPartyRoom = () => {
     const hub = new signalR.HubConnectionBuilder()
       .withUrl(import.meta.env.VITE_HUB_URL)
       .withAutomaticReconnect()
-      .configureLogging(signalR.LogLevel.Information) // 🔥 Enable logging
+      .configureLogging(signalR.LogLevel.Information)
       .build();
 
     // 🧩 Setup all event listeners BEFORE connecting
@@ -642,6 +642,7 @@ const WatchPartyRoom = () => {
           views={viewerCount}
           scheduledStartTime={hostInfo.scheduledStartTime}
           autoStart={hostInfo.autoStart}
+          movie={movie}
         />
 
         {/* Movie Info */}

@@ -31,3 +31,5 @@ dist/
 # VSCode / IDE settings
 .vscode/
 .idea/
+
+acli.exe

@@ -11,6 +11,7 @@ import { useUserProfile } from "../../hooks/useUserProfile";
 import { FiLogOut } from "react-icons/fi";
 import api from "../../api/api";
 import AuthModal from "../../components/common/AuthModal";
+import NotificationDropdown from "../../components/common/NotificationDropdown";
 import customToast from "../../utils/customToast";
 
 const Header = () => {
@@ -32,6 +33,7 @@ const Header = () => {
   const [isGenreOpen, setIsGenreOpen] = useState(false);
 
   const timeoutRef = useRef(null);
+  const userMenuRef = useRef(null);
 
   useEffect(() => {
     if (!location.pathname.startsWith("/search")) {
@@ -60,6 +62,17 @@ const Header = () => {
       setIsAdmin(false);
     }
   }, [token]);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
+        setIsUserMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     const fetchGenres = async () => {
@@ -204,8 +217,27 @@ const Header = () => {
               download
               className="flex items-center gap-3 px-3 py-2"
             >
-              <svg width="32" height="32" viewBox="0 0 24 24">
-                <path fill="#FDBA74" d="M10.9998 16.8992C11.1655 16.8992..." />
+              <svg
+                id="Pc"
+                width="32"
+                height="32"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                className="text-white"
+              >
+                <path
+                  fillRule="evenodd"
+                  clipRule="evenodd"
+                  d="M10.9998 16.8992C11.1655 16.8992 11.2998 16.7649 11.2998 16.5992V11.5982C11.2998 9.28322 13.1838 7.39922 15.4998 7.39922H18.7998C18.9238 7.39922 19.0446 7.41106 19.1616 7.43327C19.3745 7.47368 19.5998 7.32682 19.5998 7.11012V6.69922C19.5998 6.67022 19.5968 6.64022 19.5918 6.61222C19.2488 4.66722 17.4468 3.19922 15.4008 3.19922H6.79982C4.42882 3.19922 2.49982 5.12822 2.49982 7.49922V12.5982C2.49982 14.9692 4.42882 16.8992 6.79982 16.8992H8.24282L7.86182 19.2492H5.85982C5.44582 19.2492 5.10982 19.5852 5.10982 19.9992C5.10982 20.4132 5.44582 20.7492 5.85982 20.7492H10.7598C11.1738 20.7492 11.5098 20.4132 11.5098 19.9992C11.5098 19.5852 11.1738 19.2492 10.7598 19.2492H9.38082L9.76182 16.8992H10.9998Z"
+                  fill="yellow"
+                ></path>
+                <path
+                  fillRule="evenodd"
+                  clipRule="evenodd"
+                  d="M17.1912 18.4564C16.7712 18.4564 16.4302 18.1154 16.4302 17.6954C16.4302 17.2754 16.7712 16.9344 17.1912 16.9344C17.6112 16.9344 17.9522 17.2754 17.9522 17.6954C17.9522 18.1154 17.6112 18.4564 17.1912 18.4564ZM18.8002 8.90039H15.5002C14.0362 8.90039 12.8002 10.1364 12.8002 11.5994V18.0994C12.8002 19.5884 14.0112 20.7994 15.5002 20.7994H18.8002C20.2892 20.7994 21.5002 19.5884 21.5002 18.0994V11.5994C21.5002 10.1364 20.2642 8.90039 18.8002 8.90039Z"
+                  fill="#ffffff"
+                ></path>
               </svg>
               <div className="flex flex-col leading-tight">
                 <span className="text-[10px] text-white">Tải ứng dụng</span>
@@ -215,15 +247,15 @@ const Header = () => {
               </div>
             </a>
 
+            {/* Notification Dropdown */}
+            <NotificationDropdown />
+
             {token ? (
-              <div
-                className="relative"
-                onMouseEnter={handleMouseEnter}
-                onMouseLeave={handleMouseLeave}
-              >
+              <div className="relative">
+                {/* AVATAR */}
                 <div
                   className="w-8 h-8 rounded-full overflow-hidden cursor-pointer"
-                  onClick={toggleUserMenu}
+                  onClick={() => setIsUserMenuOpen((prev) => !prev)}
                 >
                   <img
                     src={profile?.avatarUrl || userImg}
@@ -232,48 +264,44 @@ const Header = () => {
                   />
                 </div>
 
-                {/* User Menu */}
-                <div
-                  className={`absolute top-full right-0 mt-2 w-45 bg-neutral-700 text-white rounded-md shadow-lg z-50 ${
-                    window.innerWidth < 1024
-                      ? isUserMenuOpen
-                        ? "block"
-                        : "hidden"
-                      : isHovered
-                      ? "block"
-                      : "hidden"
-                  }`}
-                >
-                  {isAdmin ? (
-                    <button
-                      onClick={handleAdminDashboard}
-                      className="block w-full text-left px-4 py-2 hover:bg-neutral-600"
-                    >
-                      Admin Dashboard
-                    </button>
-                  ) : (
-                    <>
-                      <button
-                        onClick={handleWatchList}
-                        className="block w-full text-left px-4 py-2 hover:bg-neutral-600"
-                      >
-                        Watch List
-                      </button>
-                      <button
-                        onClick={handleUserProfile}
-                        className="block w-full text-left px-4 py-2 hover:bg-neutral-600"
-                      >
-                        Profile
-                      </button>
-                    </>
-                  )}
-                  <button
-                    onClick={handleLogout}
-                    className="flex items-center w-full text-left px-4 py-2 hover:bg-neutral-600 text-red-400"
+                {/* USER DROPDOWN */}
+                {isUserMenuOpen && (
+                  <div
+                    ref={userMenuRef}
+                    className="absolute top-full right-0 mt-2 w-45 bg-neutral-700 text-white rounded-md shadow-lg z-50"
                   >
-                    <FiLogOut className="mr-1" /> Logout
-                  </button>
-                </div>
+                    {isAdmin ? (
+                      <button
+                        onClick={handleAdminDashboard}
+                        className="block w-full text-left px-4 py-2 hover:bg-neutral-600"
+                      >
+                        Admin Dashboard
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          onClick={handleWatchList}
+                          className="block w-full text-left px-4 py-2 hover:bg-neutral-600"
+                        >
+                          Watch List
+                        </button>
+                        <button
+                          onClick={handleUserProfile}
+                          className="block w-full text-left px-4 py-2 hover:bg-neutral-600"
+                        >
+                          Profile
+                        </button>
+                      </>
+                    )}
+
+                    <button
+                      onClick={handleLogout}
+                      className="flex items-center w-full text-left px-4 py-2 hover:bg-neutral-600 text-red-400"
+                    >
+                      <FiLogOut className="mr-1" /> Logout
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <button

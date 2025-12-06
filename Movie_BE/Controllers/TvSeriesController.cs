@@ -13,6 +13,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Text.RegularExpressions;
 using Movie_BE.DTOs;
 using Movie_BE.Models;
+using Movie_BE.Services;
 using Npgsql;
 
 namespace backend.Controllers
@@ -23,11 +24,13 @@ namespace backend.Controllers
     {
         private readonly MovieDbContext _context;
         private readonly S3Service _s3Service;
+        private readonly INotificationService _notificationService;
 
-        public TvSeriesController(MovieDbContext context, S3Service s3Service)
+        public TvSeriesController(MovieDbContext context, S3Service s3Service, INotificationService notificationService)
         {
             _context = context;
             _s3Service = s3Service;
+            _notificationService = notificationService;
         }
 
         [HttpGet]
@@ -421,6 +424,13 @@ namespace backend.Controllers
                     };
                     _context.Episodes.Add(episode);
                     await _context.SaveChangesAsync();
+
+                    // Create notifications for users who have this TV series in their watchlist
+                    await _notificationService.CreateNewEpisodeNotifications(
+                        tvSeries.Id,
+                        season.SeasonNumber,
+                        episode.EpisodeNumber
+                    );
 
                     var response = new EpisodeResponseDTO
                     {

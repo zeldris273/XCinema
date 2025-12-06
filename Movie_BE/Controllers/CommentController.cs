@@ -5,6 +5,8 @@ using Microsoft.EntityFrameworkCore;
 using backend.Data;
 using backend.DTOs;
 using backend.Models;
+using Movie_BE.Services;
+using System.Threading.Tasks;
 
 namespace backend.Controllers
 {
@@ -13,10 +15,12 @@ namespace backend.Controllers
     public class CommentsController : ControllerBase
     {
         private readonly MovieDbContext _context;
+        private readonly INotificationService _notificationService;
 
-        public CommentsController(MovieDbContext context)
+        public CommentsController(MovieDbContext context, INotificationService notificationService)
         {
             _context = context;
+            _notificationService = notificationService;
         }
 
         [HttpGet]
@@ -44,7 +48,7 @@ namespace backend.Controllers
         }
 
         [HttpPost]
-        public IActionResult AddComment([FromBody] CommentRequestDTO request)
+        public async Task<IActionResult> AddComment([FromBody] CommentRequestDTO request)
         {
             if (string.IsNullOrEmpty(request.CommentText))
             {
@@ -133,6 +137,37 @@ namespace backend.Controllers
 
             _context.Comments.Add(comment);
             _context.SaveChanges();
+
+            // Create notification if this is a reply
+            if (request.ParentCommentId.HasValue)
+            {
+                var parentComment = await _context.Comments
+                    .Include(c => c.User)
+                    .FirstOrDefaultAsync(c => c.Id == request.ParentCommentId.Value);
+
+                if (parentComment != null)
+                {
+                    string movieTitle = "";
+                    if (request.MovieId.HasValue)
+                    {
+                        var movie = await _context.Movies.FindAsync(request.MovieId.Value);
+                        movieTitle = movie?.Title ?? "Unknown Movie";
+                    }
+                    else if (request.TvSeriesId.HasValue)
+                    {
+                        var tvSeries = await _context.TvSeries.FindAsync(request.TvSeriesId.Value);
+                        movieTitle = tvSeries?.Title ?? "Unknown TV Series";
+                    }
+
+                    await _notificationService.CreateCommentReplyNotification(
+                        parentComment.UserId,
+                        request.UserId,
+                        comment.Id,
+                        movieTitle,
+                        request.CommentText
+                    );
+                }
+            }
 
             var response = new CommentResponseDTO
             {
