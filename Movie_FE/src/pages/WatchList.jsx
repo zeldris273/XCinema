@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import api from "../api/api";
 import { useNavigate } from "react-router-dom";
 import Slug from "../utils/Slug";
@@ -29,7 +29,6 @@ const Watchlist = () => {
       setWatchlist(response.data);
       setLoading(false);
     } catch (err) {
-      console.error("Error fetching watchlist:", err.response || err);
       if (err.response?.status === 401) {
         customSwal("Lỗi", "Session expired. Please log in again.", "error");
         localStorage.setItem("loginRedirect", "/user/watchlist");
@@ -66,7 +65,6 @@ const Watchlist = () => {
       );
       customSwal("Thành công", "Removed from Watch List!", "success");
     } catch (err) {
-      console.error("Error removing from watchlist:", err);
       if (err.response?.status === 401) {
         customSwal("Lỗi", "Session expired. Please log in again.", "error");
         localStorage.setItem("loginRedirect", "/user/watchlist");

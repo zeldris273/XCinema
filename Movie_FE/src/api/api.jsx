@@ -22,15 +22,10 @@ api.interceptors.request.use(
     const accessToken = localStorage.getItem('accessToken');
     if (accessToken) {
       config.headers.Authorization = `Bearer ${accessToken}`;
-    } else {
-      console.warn('No access token for:', config.url);
     }
     return config;
   },
-  (error) => {
-    console.error('Request error:', error);
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 api.interceptors.response.use(
@@ -38,7 +33,6 @@ api.interceptors.response.use(
     return response;
   },
   async (error) => {
-    console.log('Error from:', error.config?.url, 'status:', error.response?.status, 'data:', error.response?.data);
     const originalRequest = error.config;
 
     if (error.response?.status === 401 && !originalRequest._retry) {
@@ -47,16 +41,13 @@ api.interceptors.response.use(
         originalRequest._retry = true;
 
         try {
-          console.log('Attempting to refresh token for:', error.config.url);
           const response = await api.post('/api/auth/refresh-token', {}, {
             withCredentials: true
           });
           const { accessToken } = response.data;
           localStorage.setItem('accessToken', accessToken);
           onRefreshed(accessToken);
-          console.log('Token refreshed:', accessToken.substring(0, 20) + '...');
         } catch (refreshError) {
-          console.error('Refresh failed:', error.config.url, refreshError.response?.data || refreshError.message);
           localStorage.removeItem('accessToken');
           // Lưu URL hiện tại trước khi redirect
           const currentPath = window.location.pathname + window.location.search;

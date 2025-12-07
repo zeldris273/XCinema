@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { FaBell, FaCheck, FaTrash, FaTimes } from "react-icons/fa";
 import { useSelector } from "react-redux";
 import api from "../../api/api";
@@ -17,7 +17,6 @@ const NotificationDropdown = () => {
   // Fetch notifications
   const fetchNotifications = async () => {
     if (!user) {
-      console.log("Cannot fetch notifications: user is null");
       return;
     }
 
@@ -38,19 +37,14 @@ const NotificationDropdown = () => {
   // Fetch unread count
   const fetchUnreadCount = async () => {
     if (!user) {
-      console.log("Cannot fetch unread count: user is null");
       return;
     }
 
     try {
       const response = await api.get("/api/notification/unread-count");
       setUnreadCount(response.data.unreadCount);
-      console.log("✅ Unread count set to:", response.data.unreadCount);
     } catch (error) {
-      console.error("❌ Error fetching unread count:", error);
-      console.error("Error response:", error.response);
-      console.error("Error details:", error.response?.data);
-      console.error("Error status:", error.response?.status);
+      // Error fetching unread count
     }
   };
 
@@ -61,7 +55,7 @@ const NotificationDropdown = () => {
       fetchNotifications();
       fetchUnreadCount();
     } catch (error) {
-      console.error("Error marking notification as read:", error);
+      // Error marking notification as read
     }
   };
 
@@ -72,7 +66,7 @@ const NotificationDropdown = () => {
       fetchNotifications();
       fetchUnreadCount();
     } catch (error) {
-      console.error("Error marking all as read:", error);
+      // Error marking all as read
     }
   };
 
@@ -83,7 +77,7 @@ const NotificationDropdown = () => {
       fetchNotifications();
       fetchUnreadCount();
     } catch (error) {
-      console.error("Error deleting notification:", error);
+      // Error deleting notification
     }
   };
 
@@ -138,16 +132,13 @@ const NotificationDropdown = () => {
 
   // Fetch on mount and when user changes
   useEffect(() => {
-    console.log("User changed:", user);
     if (user) {
-      console.log("Fetching initial unread count...");
       fetchUnreadCount();
       // Poll every 5 seconds for faster updates
       const interval = setInterval(fetchUnreadCount, 5000);
 
       // Listen for manual refresh events
       const handleRefresh = () => {
-        console.log("Manual notification refresh triggered");
         fetchUnreadCount();
       };
       window.addEventListener("refreshNotifications", handleRefresh);

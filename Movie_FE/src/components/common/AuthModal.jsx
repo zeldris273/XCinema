@@ -30,7 +30,6 @@ export default function AuthModal({ show, onClose }) {
     const token = urlParams.get("token");
 
     if (token) {
-      console.log("🔥 Token found in URL:", token);
 
       // Lưu token
       localStorage.setItem("accessToken", token);
@@ -38,7 +37,6 @@ export default function AuthModal({ show, onClose }) {
 
       // Lấy redirect URL
       const redirect = localStorage.getItem("loginRedirect");
-      console.log("🔥 Redirect URL from localStorage:", redirect);
 
       // Xóa token khỏi URL trước
       const cleanUrl = window.location.pathname;
@@ -46,7 +44,6 @@ export default function AuthModal({ show, onClose }) {
 
       // Redirect
       if (redirect) {
-        console.log("🔥 Navigating to:", redirect);
         localStorage.removeItem("loginRedirect");
 
         // Đợi một chút để dispatch hoàn tất
@@ -54,7 +51,7 @@ export default function AuthModal({ show, onClose }) {
           navigate(redirect, { replace: true });
         }, 100);
       } else {
-        console.log("🔥 No redirect found, staying on current page");
+        // No redirect found, staying on current page
       }
 
       // Đóng modal nếu đang mở
@@ -225,7 +222,6 @@ export default function AuthModal({ show, onClose }) {
         // Lấy redirect URL và navigate
         const redirect = localStorage.getItem("loginRedirect");
         if (redirect) {
-          console.log("🔥 Login redirect to:", redirect);
           localStorage.removeItem("loginRedirect");
           setTimeout(() => {
             navigate(redirect, { replace: true });
@@ -243,7 +239,6 @@ export default function AuthModal({ show, onClose }) {
         // Lấy redirect URL và navigate
         const redirect = localStorage.getItem("loginRedirect");
         if (redirect) {
-          console.log("🔥 Register redirect to:", redirect);
           localStorage.removeItem("loginRedirect");
           setTimeout(() => {
             navigate(redirect, { replace: true });
@@ -263,7 +258,6 @@ export default function AuthModal({ show, onClose }) {
   // ================================
   const handleGoogleLogin = () => {
     const currentPath = window.location.pathname + window.location.search;
-    console.log("🔥 Saving redirect before Google login:", currentPath);
     localStorage.setItem("loginRedirect", currentPath);
 
     window.location.href = `${
@@ -273,7 +267,6 @@ export default function AuthModal({ show, onClose }) {
 
   const handleGitHubLogin = () => {
     const currentPath = window.location.pathname + window.location.search;
-    console.log("🔥 Saving redirect before GitHub login:", currentPath);
     localStorage.setItem("loginRedirect", currentPath);
 
     window.location.href = `${

@@ -1,4 +1,3 @@
-import React from "react";
 import {
   MdOutlineForward5,
   MdReplay5,

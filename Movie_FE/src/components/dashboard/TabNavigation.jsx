@@ -1,4 +1,3 @@
-import React from "react";
 
 const TabNavigation = ({ activeTab, setActiveTab }) => {
   return (

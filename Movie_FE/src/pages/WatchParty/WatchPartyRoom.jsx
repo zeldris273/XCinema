@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import * as signalR from "@microsoft/signalr";
 import Hls from "hls.js";
@@ -107,7 +107,6 @@ const WatchPartyRoom = () => {
       return;
     }
 
-    console.log("🔄 Connecting to SignalR...", { roomId, currentUser });
 
     const hub = new signalR.HubConnectionBuilder()
       .withUrl(import.meta.env.VITE_HUB_URL)
@@ -130,18 +129,6 @@ const WatchPartyRoom = () => {
         autoStart,
         scheduledStartTime
       ) => {
-        console.log("✅ JoinedRoom event received", {
-          roomId,
-          isHostFromServer,
-          count,
-          autoStart,
-          scheduledStartTime,
-          movieDataJsonLength: movieDataJson ? movieDataJson.length : 0,
-          movieDataJsonPreview: movieDataJson
-            ? movieDataJson.substring(0, 100)
-            : "NULL",
-        });
-
         setIsHost(isHostFromServer);
         setViewerCount(count || 1);
 
@@ -154,29 +141,25 @@ const WatchPartyRoom = () => {
           scheduledStartTime,
         };
 
-        console.log("🏠 Setting hostInfo:", hostInfoData);
         setHostInfo(hostInfoData);
 
         if (movieDataJson) {
           try {
             const parsed = JSON.parse(movieDataJson);
-            console.log("🎬 Movie data parsed:", parsed);
             setMovie(parsed);
             localStorage.setItem("selectedMovie", JSON.stringify(parsed));
           } catch (err) {
-            console.error("❌ Failed to parse movie data", err);
+            // Failed to parse movie data
           }
         } else {
           // Try to get from localStorage if server doesn't have it
-          console.log("⚠️ No movieDataJson from server, checking localStorage");
           const cachedMovie = localStorage.getItem("selectedMovie");
           if (cachedMovie) {
             try {
               const parsed = JSON.parse(cachedMovie);
-              console.log("📦 Using cached movie data:", parsed);
               setMovie(parsed);
             } catch (err) {
-              console.error("❌ Failed to parse cached movie data", err);
+              // Failed to parse cached movie data
             }
           }
         }
@@ -221,7 +204,6 @@ const WatchPartyRoom = () => {
     // 🎥 START SESSION - THIS IS THE KEY FIX
     // ======================================================
     hub.on("ReceiveStartSession", () => {
-      console.log("🎥 ReceiveStartSession event fired!");
       setSessionStarted(true);
 
       // Wait a bit for React state to update
@@ -238,7 +220,7 @@ const WatchPartyRoom = () => {
             setIsPlaying(true);
           })
           .catch((err) => {
-            console.error("❌ Play failed:", err);
+            // Play failed
           });
       }, 100);
     });
@@ -261,7 +243,6 @@ const WatchPartyRoom = () => {
     // 🎞 SYNC EVENTS
     // ======================================================
     hub.on("ReceivePlay", (time) => {
-      console.log("▶️ ReceivePlay", time);
       const v = videoRef.current;
       if (!v) return;
 
@@ -303,15 +284,16 @@ const WatchPartyRoom = () => {
     // 🚨 ERROR HANDLER
     // ======================================================
     hub.on("Error", (message) => {
-      console.error("❌ Server error:", message);
       customSwal("Error", message, "error");
     });
 
     // 🔥 Setup RoomCreated event listener
-    hub.on("RoomCreated", (createdRoomId, success) => {
-      if (success) {
-      } else {
-        customSwal("Error", "Room already exists", "error");
+    hub.on("RoomCreated", (createdRoomId, success, errorMessage) => {
+      if (!success) {
+        setError(errorMessage || "Failed to create room. Please try again.");
+        setTimeout(() => {
+          navigate("/watch-party");
+        }, 3000);
       }
     });
 
@@ -319,7 +301,6 @@ const WatchPartyRoom = () => {
     hub
       .start()
       .then(async () => {
-        console.log("✅ Connected to SignalR");
         setConnection(hub);
         setIsConnected(true);
 
@@ -357,10 +338,11 @@ const WatchPartyRoom = () => {
 
         await hub.invoke("JoinRoom", roomId, currentUser);
       })
-      .catch((err) => console.error("❌ SignalR connection error:", err));
+      .catch((err) => {
+        // SignalR connection error
+      });
 
     return () => {
-      console.log("🔌 Disconnecting SignalR");
       hub.stop();
     };
   }, [roomId, currentUser]); // 🔥 Add dependencies
@@ -380,11 +362,9 @@ const WatchPartyRoom = () => {
     const videoUrl = movie?.videoUrl;
 
     if (!videoUrl) {
-      console.error("❌ No video URL found in movie data");
       return;
     }
 
-    console.log("🎬 Loading HLS video:", videoUrl);
 
     let hls;
 
@@ -489,15 +469,13 @@ const WatchPartyRoom = () => {
   // ======================================================
   const handleStartSession = async () => {
     if (!connection || !isHost) {
-      console.error("❌ Cannot start: not host or no connection");
       return;
     }
 
-    console.log("🎬 Starting session...");
     try {
       await connection.invoke("StartSession", roomId);
     } catch (err) {
-      console.error("❌ StartSession failed:", err);
+      // StartSession failed
     }
   };
 

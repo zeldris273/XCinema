@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { AiOutlineLike, AiOutlineDislike, AiFillLike, AiFillDislike } from "react-icons/ai";
 import { useSelector } from "react-redux";
 import api from "../../api/api";
@@ -23,7 +23,7 @@ const LikeDislikeButton = ({ movieId, tvSeriesId, className = "" }) => {
       const response = await api.get(`/api/like/stats?${params.toString()}`);
       setStats(response.data);
     } catch (error) {
-      console.error("Error fetching like stats:", error);
+      // Error fetching like stats
     }
   };
 
@@ -51,7 +51,6 @@ const LikeDislikeButton = ({ movieId, tvSeriesId, className = "" }) => {
       // Refresh stats
       await fetchStats();
     } catch (error) {
-      console.error("Error toggling like:", error);
       customToast.error("Failed to update like status");
     } finally {
       setLoading(false);

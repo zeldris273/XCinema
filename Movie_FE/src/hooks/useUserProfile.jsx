@@ -14,7 +14,6 @@ export const useUserProfile = () => {
       setProfile(response.data);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to fetch profile");
-      console.error("Error fetching profile:", err);
     } finally {
       setLoading(false);
     }

@@ -1,4 +1,3 @@
-import React from "react";
 
 const UploadProgress = ({ progress }) => {
   if (progress <= 0) return null;

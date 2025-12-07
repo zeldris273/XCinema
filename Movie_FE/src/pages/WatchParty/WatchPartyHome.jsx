@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { jwtDecode } from "jwt-decode";
 import { useNavigate } from "react-router-dom";
 import theater from "../../assets/theater.jpg";
@@ -16,19 +16,47 @@ const WatchPartyHome = () => {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
+  const [myActiveRoom, setMyActiveRoom] = useState(null);
+
   useEffect(() => {
     window.scrollTo(0, 0);
     fetchPublicRooms();
-    const interval = setInterval(fetchPublicRooms, 10000);
+    checkMyActiveRoom();
+    const interval = setInterval(() => {
+      fetchPublicRooms();
+      checkMyActiveRoom();
+    }, 10000);
     return () => clearInterval(interval);
   }, []);
+
+  const checkMyActiveRoom = async () => {
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (!token) {
+        setMyActiveRoom(null);
+        return;
+      }
+
+      const decoded = jwtDecode(token);
+      const userId = decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"];
+
+      const response = await api.get(`/api/watchparty/my-rooms?userId=${userId}`);
+      if (response.data && response.data.length > 0) {
+        setMyActiveRoom(response.data[0]);
+      } else {
+        setMyActiveRoom(null);
+      }
+    } catch (err) {
+      setMyActiveRoom(null);
+    }
+  };
 
   const fetchPublicRooms = async () => {
     try {
       const res = await api.get("/api/watchparty/public-rooms");
       setPublicRooms(res.data || []);
     } catch (err) {
-      console.error("Error fetching public rooms:", err);
+      // Error fetching public rooms
     }
   };
 
@@ -39,7 +67,7 @@ const WatchPartyHome = () => {
     try {
       const token = localStorage.getItem("accessToken");
       if (!token) {
-        setError("Bạn chưa đăng nhập.");
+        setError("You are not logged in.");
         setLoadingRooms(false);
         return;
       }
@@ -54,14 +82,14 @@ const WatchPartyHome = () => {
       setRooms(res.data || []);
       setShowManage(true);
     } catch (err) {
-      setError(err.response?.data?.error || "Không lấy được danh sách phòng.");
+      setError(err.response?.data?.error || "Failed to fetch room list.");
     } finally {
       setLoadingRooms(false);
     }
   };
 
   const handleRejoin = (roomId) => {
-    // join lại phòng (không tạo mới)
+    // Rejoin room (not creating new)
     navigate(`/watch-party/${roomId}`);
   };
 
@@ -85,10 +113,8 @@ const WatchPartyHome = () => {
           .build();
 
         await connection.start();
-        console.log("✅ Connected to hub for ending room");
 
         await connection.invoke("EndSession", roomId);
-        console.log("✅ Room ended:", roomId);
 
         await connection.stop();
 
@@ -98,10 +124,10 @@ const WatchPartyHome = () => {
           "success"
         );
 
-        // Refresh room list
+        // Refresh room list and active room status
+        await checkMyActiveRoom();
         handleOpenManage();
       } catch (err) {
-        console.error("❌ Failed to end room:", err);
         customSwal(
           "Error",
           "Failed to end the room. Please try again.",
@@ -113,15 +139,15 @@ const WatchPartyHome = () => {
 
   return (
     <>
-      {/* POPUP hướng dẫn tạo phòng */}
+      {/* POPUP - Create Room Guide */}
       {showGuide && <CreateRoomGuide onClose={() => setShowGuide(false)} />}
 
-      {/* POPUP quản lý phòng */}
+      {/* POPUP - Manage Rooms */}
       {showManage && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-40">
           <div className="bg-[#141414] w-full max-w-xl rounded-2xl p-6 border border-neutral-700 shadow-2xl">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-white">Phòng đã tạo</h2>
+              <h2 className="text-xl font-semibold text-white">My Rooms</h2>
               <button
                 onClick={() => setShowManage(false)}
                 className="text-gray-400 hover:text-white text-2xl leading-none"
@@ -131,7 +157,7 @@ const WatchPartyHome = () => {
             </div>
 
             {loadingRooms && (
-              <p className="text-gray-300 text-sm">Đang tải danh sách...</p>
+              <p className="text-gray-300 text-sm">Loading rooms...</p>
             )}
 
             {error && (
@@ -141,7 +167,7 @@ const WatchPartyHome = () => {
             )}
 
             {!loadingRooms && rooms.length === 0 && !error && (
-              <p className="text-gray-400 text-sm">Bạn chưa tạo phòng nào.</p>
+              <p className="text-gray-400 text-sm">You haven't created any rooms yet.</p>
             )}
 
             {!loadingRooms && rooms.length > 0 && (
@@ -151,10 +177,6 @@ const WatchPartyHome = () => {
                     room.movieDataJson &&
                     (() => {
                       try {
-                        console.log(
-                          "Parsing movie data JSON:",
-                          room.movieDataJson
-                        );
                         return JSON.parse(room.movieDataJson);
                       } catch {
                         return null;
@@ -189,7 +211,7 @@ const WatchPartyHome = () => {
                           </p>
                           <p className="text-xs text-gray-500">
                             Viewers: {room.viewerCount ?? 0} ·{" "}
-                            {room.isStarted ? "Đang chạy" : "Chưa bắt đầu"}
+                            {room.isStarted ? "Running" : "Not Started"}
                           </p>
                         </div>
                       </div>
@@ -199,7 +221,7 @@ const WatchPartyHome = () => {
                           onClick={() => handleRejoin(room.roomId)}
                           className="px-3 py-2 text-xs bg-yellow-400 text-black font-semibold rounded-full hover:bg-yellow-500 transition"
                         >
-                          Join lại
+                          Rejoin
                         </button>
                         <button
                           onClick={() => handleEndRoom(room.roomId)}
@@ -230,21 +252,47 @@ const WatchPartyHome = () => {
             Watch Party
           </h1>
 
+          {/* Active Room Warning */}
+          {myActiveRoom && (
+            <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-lg px-4 py-3 max-w-md">
+              <p className="text-yellow-300 text-sm text-center">
+                ⚠️ You already have an active room: <strong>{myActiveRoom.roomId}</strong>
+                <br />
+                Please end the current room before creating a new one.
+              </p>
+            </div>
+          )}
+
           <div className="flex items-center gap-5">
-            {/* Quản lý → gọi API + mở popup */}
+            {/* Manage Rooms Button */}
             <button
               onClick={handleOpenManage}
               className="px-7 py-3 flex items-center gap-2 bg-white text-black rounded-full text-lg font-semibold shadow-lg hover:scale-105 transition-all"
             >
-              <span className="text-xl">📡</span>Quản lý
+              <span className="text-xl">📡</span>Manage
             </button>
 
-            {/* Tạo mới → mở popup hướng dẫn */}
+            {/* Create New Room Button */}
             <button
-              onClick={() => setShowGuide(true)}
-              className="px-7 py-3 flex items-center gap-2 bg-[#352336] text-white rounded-full text-lg font-semibold shadow-lg hover:scale-105 transition-all"
+              onClick={() => {
+                if (myActiveRoom) {
+                  customSwal(
+                    "Cannot Create New Room",
+                    `You already have an active room: ${myActiveRoom.roomId}. Please end the current room before creating a new one.`,
+                    "warning"
+                  );
+                } else {
+                  setShowGuide(true);
+                }
+              }}
+              className={`px-7 py-3 flex items-center gap-2 rounded-full text-lg font-semibold shadow-lg hover:scale-105 transition-all ${
+                myActiveRoom
+                  ? "bg-gray-600 text-gray-300 cursor-not-allowed opacity-50"
+                  : "bg-[#352336] text-white"
+              }`}
+              disabled={myActiveRoom !== null}
             >
-              <span className="text-2xl">＋</span> Tạo mới
+              <span className="text-2xl">＋</span> Create New
             </button>
           </div>
         </div>

@@ -5,7 +5,6 @@ export const loginUser = createAsyncThunk(
   "auth/loginUser",
   async ({ email, password }, { rejectWithValue }) => {
     try {
-      console.log("Attempting login with:", { email, password });
       const response = await api.post(
         "/api/auth/login",
         {
@@ -16,22 +15,16 @@ export const loginUser = createAsyncThunk(
           withCredentials: true, // Gửi cookie
         }
       );
-      console.log("Login API response:", response);
 
       const { accessToken } = response.data;
       if (!accessToken) {
-        console.error("Access token missing in response:", response.data);
         throw new Error("accessToken missing in response");
       }
 
       localStorage.setItem("accessToken", accessToken);
-      console.log("Access token stored in localStorage:", {
-        accessToken: localStorage.getItem("accessToken"),
-      });
 
       return { email, token: accessToken };
     } catch (error) {
-      console.error("Login error:", error.response?.data || error.message);
       return rejectWithValue(error.response?.data || error.message);
     }
   }
@@ -41,20 +34,17 @@ export const registerUser = createAsyncThunk(
   "auth/registerUser",
   async ({ email, password, otp }, { rejectWithValue, dispatch }) => {
     try {
-      console.log("Verifying OTP with:", { email, password, otp });
       await api.post("/api/auth/verify-otp", {
         email,
         password,
         otp,
       });
 
-      console.log("OTP verified, proceeding to login");
       const loginResponse = await dispatch(
         loginUser({ email, password })
       ).unwrap();
       return loginResponse;
     } catch (error) {
-      console.error("Register error:", error.response?.data || error.message);
       return rejectWithValue(error.response?.data || error.message);
     }
   }
@@ -64,7 +54,6 @@ export const logoutUser = createAsyncThunk(
   "auth/logoutUser",
   async (_, { rejectWithValue }) => {
     try {
-      console.log("Logging out");
       await api.post(
         "/api/auth/logout",
         {},
@@ -74,11 +63,9 @@ export const logoutUser = createAsyncThunk(
       );
 
       localStorage.removeItem("accessToken");
-      console.log("Access token removed from localStorage");
 
       return null;
     } catch (error) {
-      console.error("Logout error:", error.response?.data || error.message);
       return rejectWithValue(error.response?.data || error.message);
     }
   }
@@ -93,10 +80,8 @@ export const setToken = createAsyncThunk(
         throw new Error("Token is required");
       }
       localStorage.setItem("accessToken", token);
-      console.log("Token set in localStorage:", { accessToken: token });
       return { token };
     } catch (error) {
-      console.error("Set token error:", error.message);
       return rejectWithValue(error.message);
     }
   }

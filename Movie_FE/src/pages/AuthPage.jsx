@@ -262,7 +262,6 @@ export default function AuthPage() {
         navigate(redirectTo);
       }
     } catch (err) {
-      console.error("Auth error:", err);
       let errorMessage = "An unknown error occurred";
       if (err.response?.data?.message) errorMessage = err.response.data.message;
       else if (err.response?.data)

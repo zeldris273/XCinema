@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import BannerHome from "../components/BannerHome";
 import HorizontalScrollCard from "../components/HorizontalScrollCard";
 import useFetch from "../hooks/useFetch";
@@ -15,7 +15,6 @@ const getUserIdFromToken = () => {
 
     return userId ? parseInt(userId, 10) : null;
   } catch (error) {
-    console.error("Lỗi khi decode token:", error);
     return null;
   }
 };

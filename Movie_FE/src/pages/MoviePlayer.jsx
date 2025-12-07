@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import api from "../api/api";
 import { jwtDecode } from "jwt-decode";
@@ -63,7 +63,6 @@ const MoviePlayer = () => {
       video.currentTime = savedTime;
       setCurrentTime(savedTime);
       video.play().catch((err) => {
-        console.error("Play failed:", err.message);
         setError("Failed to play video. Please click play manually.");
       });
       setIsPlaying(true);
@@ -78,7 +77,6 @@ const MoviePlayer = () => {
     if (video) {
       video.currentTime = 0;
       video.play().catch((err) => {
-        console.error("Play failed:", err.message);
         setError("Failed to play video. Please click play manually.");
       });
       setIsPlaying(true);
@@ -94,7 +92,6 @@ const MoviePlayer = () => {
         const userId = decoded["sub"];
         setCurrentUserId(parseInt(userId, 10));
       } catch (err) {
-        console.error("Error decoding token:", err);
         setError("Invalid token. Please log in again.");
         const currentPath = location.pathname + location.search;
         localStorage.setItem("loginRedirect", currentPath);
@@ -159,8 +156,6 @@ const MoviePlayer = () => {
         const seasonData = seasonResponse.data;
         setSeasons(seasonData);
 
-        console.log("Fetched seasons:", seasonData);
-
         if (seasonData.length > 0) {
           const episodesResponse = await api.get(
             `/api/tvseries/seasons/${seasonData[0].id}/episodes`
@@ -200,7 +195,6 @@ const MoviePlayer = () => {
       video.pause();
     } else {
       video.play().catch((err) => {
-        console.error("Play failed:", err.message);
         setError("Failed to play video. Please click play manually.");
       });
       logView();
@@ -215,7 +209,7 @@ const MoviePlayer = () => {
         contentType: mediaType === "movie" ? "movie" : "tvseries",
       });
     } catch (error) {
-      console.error("Failed to log view:", error);
+      // Failed to log view
     }
   };
 
@@ -280,7 +274,6 @@ const MoviePlayer = () => {
       containerRef.current
         .requestFullscreen()
         .catch((err) => {
-          console.error("Error attempting to enable full-screen mode:", err);
           setError("Full-screen mode is not supported or blocked.");
         })
         .then(() => {

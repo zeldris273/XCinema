@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { FaEye, FaShareAlt, FaLock, FaClock } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import customSwal from "../../utils/customSwal";

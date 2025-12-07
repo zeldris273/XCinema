@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import useFetchDetails from "../hooks/useFetchDetails";
 import moment from "moment";
@@ -67,7 +67,6 @@ const DetailsPage = () => {
           setEpisodeError("No seasons found for this series.");
         }
       } catch (err) {
-        console.error("Error fetching episodes:", err);
         setEpisodeError("Failed to fetch episodes.");
       }
     };
@@ -93,7 +92,6 @@ const DetailsPage = () => {
           navigate("/");
         }
       } catch (err) {
-        console.error("Error decoding token:", err);
         customSwal("Lỗi!", "Token không hợp lệ!", "error");
         const currentPath = location.pathname + location.search;
         localStorage.setItem("loginRedirect", currentPath);
@@ -128,7 +126,6 @@ const DetailsPage = () => {
         customSwal("Thành công", "Added to Watch List", "success");
       }
     } catch (error) {
-      console.error("Error adding to watch list:", error);
       customSwal(
         "Lỗi",
         error.response?.data?.error || "Failed to add to watch list.",
@@ -146,7 +143,6 @@ const DetailsPage = () => {
       );
       return response.data;
     } catch (error) {
-      console.error("Error fetching updated media details:", error);
       return null;
     }
   };
@@ -183,7 +179,6 @@ const DetailsPage = () => {
         if (updatedData) setData(updatedData);
       }
     } catch (error) {
-      console.error("Error submitting rating:", error);
       let errorMessage = "Failed to submit rating.";
       if (error.response?.status === 401) {
         errorMessage = "Session expired. Please log in again.";

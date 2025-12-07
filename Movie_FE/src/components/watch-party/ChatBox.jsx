@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { BsToggleOn, BsSend } from "react-icons/bs";
 import { jwtDecode } from "jwt-decode";
 import AuthModal from "../common/AuthModal";

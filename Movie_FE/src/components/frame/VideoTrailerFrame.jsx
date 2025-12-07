@@ -1,4 +1,3 @@
-import React from "react";
 import { IoClose } from "react-icons/io5";
 
 const VideoPlay = ({ data, close, media_type }) => {

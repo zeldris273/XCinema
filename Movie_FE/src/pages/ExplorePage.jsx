@@ -1,6 +1,6 @@
-import axios from 'axios';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import api from "../api/api";
 import Card from '../components/common/Card';
 
 const ExplorePage = () => {
@@ -27,10 +27,9 @@ const ExplorePage = () => {
       if (!mediaType) return; // Đợi mediaType được thiết lập
 
       const endpoint = mediaType === 'tv' ? 'tvseries' : 'movies';
-      const response = await axios.get(`http://localhost:5116/api/${endpoint}`);
+      const response = await api.get(`/api/${endpoint}`);
       setData(response.data);
     } catch (error) {
-      console.log('error: ', error);
     }
   };
 

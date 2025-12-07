@@ -1,4 +1,3 @@
-import React from "react";
 import UploadProgress from "./UploadProgress";
 
 const AddEpisodeForm = ({

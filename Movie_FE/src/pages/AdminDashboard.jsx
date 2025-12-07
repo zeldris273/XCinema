@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import api from "../api/api";
 import { jwtDecode } from "jwt-decode";
 import customSwal from "../utils/customSwal";
@@ -124,7 +124,6 @@ const AdminDashboard = () => {
           fetchTvSeries();
         }
       } catch (err) {
-        console.error("Error decoding token:", err);
         customSwal("Lỗi!", "Token không hợp lệ!", "error");
         localStorage.setItem('loginRedirect', '/admin-dashboard');
         navigate("/auth");
@@ -241,8 +240,6 @@ const AdminDashboard = () => {
     uploadData.append("PosterFile", newMovie.posterFile);
 
     try {
-      console.log("Starting upload..."); // Debug log
-
       const response = await api.post("/api/movies/create", uploadData, {
         headers: {
           "Content-Type": "multipart/form-data",
@@ -255,12 +252,9 @@ const AdminDashboard = () => {
               (progressEvent.loaded * 100) / progressEvent.total
             );
             setUploadProgress(percent);
-            console.log(`Upload progress: ${percent}%`);
           }
         },
       });
-
-      console.log("✅ Upload successful:", response.data); // Debug log
 
       setMovies([
         ...movies,
@@ -298,10 +292,6 @@ const AdminDashboard = () => {
       setError(null);
       customSwal("Thành công!", "Thêm phim thành công!", "success");
     } catch (err) {
-      console.error("❌ Upload failed:", err);
-      console.error("Error response:", err.response?.data);
-      console.error("Error status:", err.response?.status);
-
       setUploadProgress(0); // Reset progress khi lỗi
 
       let errorMessage = "Failed to add movie: ";
@@ -384,8 +374,6 @@ const AdminDashboard = () => {
     }
 
     try {
-      console.log("Starting TV series upload..."); // Debug log
-
       const response = await api.post("/api/tvseries/create", uploadData, {
         headers: {
           "Content-Type": "multipart/form-data",
@@ -398,12 +386,9 @@ const AdminDashboard = () => {
               (progressEvent.loaded * 100) / progressEvent.total
             );
             setUploadProgress(percent);
-            console.log(`Upload progress: ${percent}%`);
           }
         },
       });
-
-      console.log("✅ TV series upload successful:", response.data); // Debug log
 
       setTvSeries([...tvSeries, response.data]);
 
@@ -424,10 +409,6 @@ const AdminDashboard = () => {
       setError(null);
       customSwal("Thành công!", "Thêm TV series thành công!", "success");
     } catch (err) {
-      console.error("❌ TV series upload failed:", err);
-      console.error("Error response:", err.response?.data);
-      console.error("Error status:", err.response?.status);
-
       setUploadProgress(0); // Reset progress khi lỗi
 
       let errorMessage = "Failed to add TV series: ";

@@ -21,6 +21,14 @@ namespace backend.Hubs
 
         public async Task CreateRoom(string roomId, string hostUserId, string movieDataJson, bool autoStart = false, DateTime? scheduledStartTime = null, bool isPrivate = false)
         {
+            // Check if user already has an active room
+            var existingRoom = ActiveRooms.Values.FirstOrDefault(r => r.HostUserId == hostUserId);
+            if (existingRoom != null)
+            {
+                await Clients.Caller.SendAsync("RoomCreated", roomId, false, $"You already have an active room ({existingRoom.RoomId}). Please end it before creating a new one.");
+                return;
+            }
+
             if (!ActiveRooms.ContainsKey(roomId))
             {
 
@@ -44,20 +52,17 @@ namespace backend.Hubs
                     IsPrivate = isPrivate
                 };
 
-                Console.WriteLine($"🎬 Movie data saved in room: {(string.IsNullOrEmpty(movieDataJson) ? "EMPTY" : movieDataJson.Substring(0, Math.Min(100, movieDataJson.Length)))}...");
 
                 await Groups.AddToGroupAsync(Context.ConnectionId, roomId);
                 ConnectionToUser[Context.ConnectionId] = hostUserId;
 
                 ActiveRooms[roomId].Viewers.Add(hostUserId);
 
-                await Clients.Caller.SendAsync("RoomCreated", roomId, true);
-                System.Console.WriteLine($"✅ Created room {roomId} by Host {hostUserId}" +
-                    (scheduledStartTime.HasValue ? $" scheduled for {scheduledStartTime.Value:yyyy-MM-dd HH:mm:ss} UTC" : ""));
+                await Clients.Caller.SendAsync("RoomCreated", roomId, true, null);
             }
             else
             {
-                await Clients.Caller.SendAsync("RoomCreated", roomId, false);
+                await Clients.Caller.SendAsync("RoomCreated", roomId, false, "Room ID already exists. Please try another one.");
             }
         }
 
@@ -72,7 +77,6 @@ namespace backend.Hubs
                 if (isHost)
                 {
                     room.HostConnectionId = Context.ConnectionId;
-                    Console.WriteLine($"🔄 Host reconnection updated. New HostConnectionId: {room.HostConnectionId}");
                 }
 
                 ConnectionToUser[Context.ConnectionId] = userId;
@@ -93,7 +97,6 @@ namespace backend.Hubs
                     displayName = "1 khách";
                 }
 
-                Console.WriteLine($"👤 {displayName} joined {roomId}. Was new: {wasAdded}. Total: {room.Viewers.Count}");
 
                 if (wasAdded)
                 {
@@ -101,7 +104,6 @@ namespace backend.Hubs
                         .SendAsync("ReceiveSystemMessage", $"{displayName} vừa tham gia phòng");
                 }
 
-                Console.WriteLine($"📤 Sending JoinedRoom to {displayName}: movieDataJson length = {(string.IsNullOrEmpty(room.MovieDataJson) ? 0 : room.MovieDataJson.Length)}");
 
                 await Clients.Caller.SendAsync(
                     "JoinedRoom",
@@ -133,7 +135,6 @@ namespace backend.Hubs
             else
             {
                 await Clients.Caller.SendAsync("JoinedRoom", roomId, false, null, null, null, DateTime.UtcNow, 0, null, false, null);
-                Console.WriteLine($"❌ Room {roomId} not found");
             }
         }
 
@@ -149,7 +150,6 @@ namespace backend.Hubs
 
                     if (room.HostConnectionId == Context.ConnectionId)
                     {
-                        Console.WriteLine($"⚠ Host {room.HostUserId} disconnected from {room.RoomId}");
                         continue;
                     }
 
@@ -159,7 +159,6 @@ namespace backend.Hubs
                             ? (await _authService.GetUserProfile(parsedId))?.DisplayName ?? $"User {userId}"
                             : "1 khách";
 
-                        Console.WriteLine($"👋 {displayName} left {room.RoomId}");
 
                         await Clients.Group(room.RoomId)
                             .SendAsync("ReceiveSystemMessage", $"{displayName} vừa rời phòng");
@@ -177,26 +176,22 @@ namespace backend.Hubs
 
         public async Task StartSession(string roomId)
         {
-            Console.WriteLine("🔥 StartSession CALLED for room " + roomId);
 
             if (ActiveRooms.TryGetValue(roomId, out var room))
             {
-                Console.WriteLine($"✅ Got room from dictionary");
 
                 if (Context.ConnectionId != room.HostConnectionId)
                 {
-                    Console.WriteLine($"❌ Not host! ConnectionId: {Context.ConnectionId} vs {room.HostConnectionId}");
                     await Clients.Caller.SendAsync("Error", "Only host can start the session!");
                     return;
                 }
 
                 room.IsStarted = true;
+                room.StartedAt = DateTime.UtcNow;
                 await Clients.Group(roomId).SendAsync("ReceiveStartSession");
-                Console.WriteLine($"▶ Room {roomId} started by host.");
             }
             else
             {
-                Console.WriteLine($"❌ TryGetValue failed for room {roomId}");
             }
         }
 
@@ -213,7 +208,6 @@ namespace backend.Hubs
 
             ActiveRooms.Remove(roomId, out _);
 
-            Console.WriteLine($"✅ Session {roomId} ended and room cleared by host.");
 
             await Task.Delay(1000); // Give clients time to process
         }
@@ -229,7 +223,6 @@ namespace backend.Hubs
 
             await Clients.Group(roomId).SendAsync("ReceiveChat", user, message, avatarUrl);
 
-            Console.WriteLine($" [{roomId}] {user}: {message}");
         }
 
 
@@ -282,6 +275,7 @@ namespace backend.Hubs
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? ScheduledStartTime { get; set; } = null;
+        public DateTime? StartedAt { get; set; } = null;
         public bool AutoStart { get; set; } = false;
         public HashSet<string> Viewers { get; set; } = new();
     }

@@ -1,4 +1,3 @@
-import React from "react";
 
 const ErrorMessage = ({ error, onDismiss }) => {
   if (!error) return null;

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import api from "../../api/api";
 import { FaAngleLeft, FaAngleRight, FaPlay } from "react-icons/fa";
 
@@ -16,7 +16,7 @@ export default function RecommendedMovies({ movieId }) {
         );
         setMovies(res.data);
       } catch (error) {
-        console.error("❌ Lỗi khi tải phim tương tự:", error);
+        // Error loading similar movies
       }
     };
 

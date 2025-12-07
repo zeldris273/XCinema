@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
 import { mobileNavigation } from "../../constants/navigation";
 import MobileGenresModal from "./MobileGenresModal";
@@ -14,7 +14,7 @@ const MobileNavigation = () => {
         const res = await api.get("/api/genres");
         setGenres(res.data);
       } catch (err) {
-        console.error("❌ Error loading genres:", err);
+        // Error loading genres
       }
     };
     fetchGenres();

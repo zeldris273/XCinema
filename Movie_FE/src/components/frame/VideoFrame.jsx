@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import {
   MdOutlineForward5,
   MdReplay5,
@@ -71,7 +71,9 @@ const VideoFrame = ({
       });
 
       hls.on(Hls.Events.ERROR, (event, data) => {
-        if (data.fatal) console.error("HLS Error:", event, data);
+        if (data.fatal) {
+          // HLS Error
+        }
       });
 
       video.hls = hls;

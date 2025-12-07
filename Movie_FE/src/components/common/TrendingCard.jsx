@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { FaAngleLeft, FaAngleRight } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import api from "../../api/api";
@@ -15,7 +15,7 @@ export default function MovieCarousel() {
         const res = await api.get("/api/trending/all");
         setMovies(res.data);
       } catch (err) {
-        console.error("Lỗi fetch trending movies:", err);
+        // Error fetching trending movies
       }
     };
 

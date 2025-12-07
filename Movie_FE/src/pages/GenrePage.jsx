@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import api from "../api/api";
 import Card from "../components/common/Card";
@@ -20,7 +20,7 @@ const GenrePage = () => {
         const resMedia = await api.get(`/api/genres/${id}/media`);
         setMediaList(resMedia.data);
       } catch (error) {
-        console.error("❌ Error loading genre:", error);
+        // Error loading genre
       }
     };
     fetchData();

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { AiOutlineLike, AiOutlineDislike, AiFillLike, AiFillDislike } from "react-icons/ai";
 import { useSelector } from "react-redux";
 import api from "../../api/api";
@@ -17,7 +17,7 @@ const CommentLikeButton = ({ commentId }) => {
       const response = await api.get(`/api/like/stats?commentId=${commentId}`);
       setStats(response.data);
     } catch (error) {
-      console.error("Error fetching like stats:", error);
+      // Error fetching like stats
     }
   };
 
@@ -35,7 +35,7 @@ const CommentLikeButton = ({ commentId }) => {
       // Trigger notification refresh if exists
       window.dispatchEvent(new CustomEvent('refreshNotifications'));
     } catch (error) {
-      console.error("Error toggling like:", error);
+      // Error toggling like
     } finally {
       setLoading(false);
     }

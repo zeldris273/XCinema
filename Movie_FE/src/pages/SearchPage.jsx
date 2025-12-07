@@ -1,7 +1,7 @@
-import axios from "axios";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Card from "../components/common/Card";
+import api from "../api/api";
 
 const SearchPage = () => {
   const location = useLocation();
@@ -15,15 +15,12 @@ const SearchPage = () => {
 
     setLoading(true);
     try {
-      const response = await axios.get("http://localhost:5116/api/search/all", {
-        params: {
-          query: query,
-        },
+      const response = await api.get("/api/search/all", {
+        params: { query },
       });
-      console.log("Search results: ", response.data.results);
       setData(response.data.results);
     } catch (error) {
-      console.error("Error fetching search results: ", error);
+      // Error fetching search results
     } finally {
       setLoading(false);
     }
@@ -33,21 +30,6 @@ const SearchPage = () => {
     setData([]);
     fetchData();
   }, [location?.search]);
-
-  // useEffect(() => {
-  //   const handleScroll = () => {
-  //     if (
-  //       window.innerHeight + window.scrollY >= document.body.offsetHeight &&
-  //       page < totalPages &&
-  //       !loading
-  //     ) {
-  //       setPage((prev) => prev + 1);
-  //     }
-  //   };
-
-  //   window.addEventListener("scroll", handleScroll);
-  //   return () => window.removeEventListener("scroll", handleScroll);
-  // }, [page, totalPages, loading]);
 
   useEffect(() => {
     window.scrollTo(0, 0);

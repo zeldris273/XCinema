@@ -81,7 +81,6 @@ export default function AccountPage() {
         setAvatar(response.data.avatarUrl);
       }
     } catch (error) {
-      console.error("Error updating profile:", error);
       setMessage("Có lỗi xảy ra khi cập nhật thông tin. Vui lòng thử lại.");
     } finally {
       setLoading(false);

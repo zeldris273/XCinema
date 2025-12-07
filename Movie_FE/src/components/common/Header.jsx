@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import logo from "../../assets/logo.png";
 import userImg from "../../assets/user.png";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
@@ -56,7 +56,7 @@ const Header = () => {
         const decodedToken = jwtDecode(token);
         setIsAdmin(decodedToken["role"] === "Admin");
       } catch (error) {
-        console.error("Invalid token:", error);
+        // Invalid token
       }
     } else {
       setIsAdmin(false);
@@ -80,7 +80,7 @@ const Header = () => {
         const res = await api.get("/api/genres/dropdown");
         setGenres(res.data);
       } catch (err) {
-        console.error("❌ Lỗi khi tải thể loại:", err);
+        // Error loading genres
       }
     };
     fetchGenres();

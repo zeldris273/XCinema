@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import api from '../api/api';
 import { IoSendSharp } from 'react-icons/io5';
 

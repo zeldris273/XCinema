@@ -17,7 +17,6 @@ const ActorTable = () => {
       const res = await api.get("/api/actors");
       setActors(res.data);
     } catch (err) {
-      console.error("Failed to fetch actors:", err);
       customSwal("Lỗi", "Không thể lấy danh sách diễn viên", "error");
     }
   };
@@ -37,7 +36,6 @@ const ActorTable = () => {
       setNewActorName("");
       customSwal("Thành công!", "Actor đã được thêm", "success");
     } catch (err) {
-      console.error("Failed to add actor:", err);
       customSwal("Lỗi", "Không thể thêm diễn viên", "error");
     }
   };
@@ -48,7 +46,6 @@ const ActorTable = () => {
       setActors(actors.filter((a) => a.id !== id));
       customSwal("Thành công!", "Xóa diễn viên thành công!", "success");
     } catch (err) {
-      console.error("Failed to delete actor:", err);
       customSwal("Lỗi", "Không thể xóa diễn viên", "error");
     }
   };
@@ -72,7 +69,6 @@ const ActorTable = () => {
       setUpdatedActor({ name: "" });
       customSwal("Thành công!", "Cập nhật diễn viên thành công!", "success");
     } catch (err) {
-      console.error("Failed to update actor:", err);
       customSwal("Lỗi", "Không thể cập nhật diễn viên", "error");
     }
   };

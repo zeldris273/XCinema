@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { FaAngleLeft, FaAngleRight, FaStar } from "react-icons/fa";
 import { IoEye } from "react-icons/io5";
 import { Link } from "react-router-dom";
@@ -19,7 +19,6 @@ const BannerHome = () => {
           params: { limit: 10, offset: 0 },
         });
         setBannerData(response.data.data || []);
-        console.log("Fetched new releases:", response.data.data);
         setLoading(false);
       } catch (err) {
         setError(err.response?.data?.error || "Failed to fetch new releases");

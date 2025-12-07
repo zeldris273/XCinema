@@ -15,7 +15,6 @@ const GenreTable = () => {
       const res = await api.get("/api/genres");
       setGenres(res.data);
     } catch (err) {
-      console.error(err);
       customSwal("Lỗi!", "Không thể tải danh sách thể loại", "error");
     }
   };
@@ -30,7 +29,6 @@ const GenreTable = () => {
       setNewGenre("");
       customSwal("Thành công!", "Thêm thể loại thành công!", "success");
     } catch (err) {
-      console.error(err);
       customSwal("Lỗi!", "Không thể thêm thể loại", "error");
     }
   };
@@ -41,7 +39,6 @@ const GenreTable = () => {
       setGenres(genres.filter((g) => g.id !== id));
       customSwal("Thành công!", "Xóa thể loại thành công!", "success");
     } catch (err) {
-      console.error(err);
       customSwal("Lỗi!", "Không thể xóa thể loại", "error");
     }
   };
