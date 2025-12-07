@@ -220,6 +220,7 @@ const DetailsPage = () => {
           status: data.status,
           releaseDate: data.releaseDate,
           videoUrl: data.videoUrl, // movie ok
+          mediaType: "movie", // Add mediaType for clarity
         })
       );
 
@@ -234,6 +235,9 @@ const DetailsPage = () => {
       }
 
       // TV SERIES — LẤY VideoUrl TỪ Episode
+      // Find the season info to get the correct seasonNumber
+      const season = data.seasons?.find(s => s.id === firstEpisode.seasonId);
+      
       dispatch(
         setSelectedMovie({
           id: data.id,
@@ -249,7 +253,8 @@ const DetailsPage = () => {
 
           videoUrl: firstEpisode.videoUrl, // <🔥 FIX MOST IMPORTANT LINE
           episodeNumber: firstEpisode.episodeNumber,
-          seasonNumber: firstEpisode.seasonId,
+          seasonNumber: season?.seasonNumber || 1, // ✅ FIX: Use seasonNumber instead of seasonId
+          mediaType: "tv", // Add mediaType for clarity
         })
       );
 

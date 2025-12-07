@@ -19,7 +19,7 @@ namespace backend.Hubs
             _authService = authService;
         }
 
-        public async Task CreateRoom(string roomId, string hostUserId, string movieDataJson, bool autoStart = false, DateTime? scheduledStartTime = null)
+        public async Task CreateRoom(string roomId, string hostUserId, string movieDataJson, bool autoStart = false, DateTime? scheduledStartTime = null, bool isPrivate = false)
         {
             if (!ActiveRooms.ContainsKey(roomId))
             {
@@ -40,7 +40,8 @@ namespace backend.Hubs
                     Viewers = new HashSet<string>(),
                     MovieDataJson = movieDataJson,
                     AutoStart = autoStart,
-                    ScheduledStartTime = scheduledStartTime
+                    ScheduledStartTime = scheduledStartTime,
+                    IsPrivate = isPrivate
                 };
 
                 Console.WriteLine($"🎬 Movie data saved in room: {(string.IsNullOrEmpty(movieDataJson) ? "EMPTY" : movieDataJson.Substring(0, Math.Min(100, movieDataJson.Length)))}...");
@@ -277,6 +278,7 @@ namespace backend.Hubs
         public bool IsStarted { get; set; } = false;
         public double CurrentTime { get; set; } = 0;
         public string MovieDataJson { get; set; } = "";
+        public bool IsPrivate { get; set; } = false;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? ScheduledStartTime { get; set; } = null;

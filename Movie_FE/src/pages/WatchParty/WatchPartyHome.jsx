@@ -11,13 +11,26 @@ const WatchPartyHome = () => {
   const [showGuide, setShowGuide] = useState(false);
   const [showManage, setShowManage] = useState(false);
   const [rooms, setRooms] = useState([]);
+  const [publicRooms, setPublicRooms] = useState([]);
   const [loadingRooms, setLoadingRooms] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, [location]);
+    fetchPublicRooms();
+    const interval = setInterval(fetchPublicRooms, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchPublicRooms = async () => {
+    try {
+      const res = await api.get("/api/watchparty/public-rooms");
+      setPublicRooms(res.data || []);
+    } catch (err) {
+      console.error("Error fetching public rooms:", err);
+    }
+  };
 
   const handleOpenManage = async () => {
     setError("");
@@ -138,6 +151,10 @@ const WatchPartyHome = () => {
                     room.movieDataJson &&
                     (() => {
                       try {
+                        console.log(
+                          "Parsing movie data JSON:",
+                          room.movieDataJson
+                        );
                         return JSON.parse(room.movieDataJson);
                       } catch {
                         return null;
@@ -231,6 +248,98 @@ const WatchPartyHome = () => {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Public Rooms Section */}
+      <div className="container mx-auto px-6 py-12">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+            Public Watch Parties
+          </h2>
+        </div>
+
+        {publicRooms.length === 0 ? (
+          <div className="text-center py-12 bg-neutral-900 rounded-xl">
+            <p className="text-gray-400 text-lg">
+              No public rooms available right now
+            </p>
+            <p className="text-gray-500 text-sm mt-2">
+              Create a public room to watch together!
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {publicRooms.map((room) => (
+              <div
+                key={room.roomId}
+                className="bg-neutral-900 rounded-xl overflow-hidden border border-neutral-800 hover:border-yellow-400 transition-all cursor-pointer group"
+                onClick={() => handleRejoin(room.roomId)}
+              >
+                {/* Movie Backdrop */}
+                {room.movieData?.backdropUrl && (
+                  <div className="relative h-40 overflow-hidden">
+                    <img
+                      src={room.movieData.backdropUrl}
+                      alt={room.movieData.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-neutral-900 via-transparent to-transparent" />
+
+                    {room.isStarted && (
+                      <div className="absolute top-3 left-3 bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full flex items-center gap-2">
+                        <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+                        LIVE
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Room Info */}
+                <div className="p-4">
+                  <h3 className="text-white font-semibold text-lg mb-2 line-clamp-1">
+                    {room.movieData?.title || "Unknown Movie"}
+                  </h3>
+
+                  {room.movieData?.seasonNumber && (
+                    <p className="text-gray-400 text-sm mb-3">
+                      S{room.movieData.seasonNumber}E
+                      {room.movieData.episodeNumber}
+                    </p>
+                  )}
+
+                  <div className="flex items-center gap-2 text-gray-400 text-sm mb-3">
+                    <img
+                      src={room.hostAvatarUrl}
+                      alt={room.hostDisplayName}
+                      className="w-6 h-6 rounded-full"
+                    />
+                    <span>{room.hostDisplayName}</span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2 text-gray-400">
+                      <svg
+                        className="w-4 h-4"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+                      </svg>
+                      <span>
+                        {room.viewerCount} viewer
+                        {room.viewerCount !== 1 ? "s" : ""}
+                      </span>
+                    </div>
+
+                    <button className="px-4 py-2 bg-yellow-400 hover:bg-yellow-500 text-black rounded-lg font-semibold text-sm transition">
+                      Join
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </>
   );

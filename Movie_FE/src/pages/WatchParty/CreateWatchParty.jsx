@@ -91,6 +91,9 @@ const CreateWatchParty = () => {
       localStorage.removeItem("autoStart");
     }
 
+    // Save private room flag
+    localStorage.setItem("isPrivateRoom", privateRoom.toString());
+
     toast.success(`Creating Room: ${roomId}`, {
       position: "bottom-right",
       autoClose: 5000,

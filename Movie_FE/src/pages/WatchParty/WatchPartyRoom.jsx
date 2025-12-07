@@ -331,6 +331,7 @@ const WatchPartyRoom = () => {
           const autoStart = localStorage.getItem("autoStart") === "true";
           const scheduledStartTimeStr =
             localStorage.getItem("scheduledStartTime");
+          const isPrivate = localStorage.getItem("isPrivateRoom") === "true";
 
           let scheduledStartTime = null;
           if (autoStart && scheduledStartTimeStr) {
@@ -343,13 +344,15 @@ const WatchPartyRoom = () => {
             currentUser,
             movieData,
             autoStart,
-            scheduledStartTime
+            scheduledStartTime,
+            isPrivate
           );
 
           // 🔥 Clean up flags
           localStorage.removeItem("isCreatingRoom");
           localStorage.removeItem("autoStart");
           localStorage.removeItem("scheduledStartTime");
+          localStorage.removeItem("isPrivateRoom");
         }
 
         await hub.invoke("JoinRoom", roomId, currentUser);
