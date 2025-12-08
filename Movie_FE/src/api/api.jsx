@@ -1,8 +1,8 @@
-import axios from 'axios';
+import axios from "axios";
 
 const api = axios.create({
-  baseURL: 'http://localhost:5116',
-  withCredentials: true, 
+  baseURL: import.meta.env.VITE_BACKEND_API_URL || "http://localhost:5116",
+  withCredentials: true,
 });
 
 let isRefreshing = false;
@@ -13,13 +13,13 @@ const subscribeTokenRefresh = (cb) => {
 };
 
 const onRefreshed = (token) => {
-  refreshSubscribers.forEach(cb => cb(token));
+  refreshSubscribers.forEach((cb) => cb(token));
   refreshSubscribers = [];
 };
 
 api.interceptors.request.use(
   (config) => {
-    const accessToken = localStorage.getItem('accessToken');
+    const accessToken = localStorage.getItem("accessToken");
     if (accessToken) {
       config.headers.Authorization = `Bearer ${accessToken}`;
     }
@@ -41,20 +41,24 @@ api.interceptors.response.use(
         originalRequest._retry = true;
 
         try {
-          const response = await api.post('/api/auth/refresh-token', {}, {
-            withCredentials: true
-          });
+          const response = await api.post(
+            "/api/auth/refresh-token",
+            {},
+            {
+              withCredentials: true,
+            }
+          );
           const { accessToken } = response.data;
-          localStorage.setItem('accessToken', accessToken);
+          localStorage.setItem("accessToken", accessToken);
           onRefreshed(accessToken);
         } catch (refreshError) {
-          localStorage.removeItem('accessToken');
+          localStorage.removeItem("accessToken");
           // Lưu URL hiện tại trước khi redirect
           const currentPath = window.location.pathname + window.location.search;
-          if (currentPath !== '/auth') {
-            localStorage.setItem('loginRedirect', currentPath);
+          if (currentPath !== "/auth") {
+            localStorage.setItem("loginRedirect", currentPath);
           }
-          window.location.href = '/auth';
+          window.location.href = "/auth";
           return Promise.reject(refreshError);
         } finally {
           isRefreshing = false;

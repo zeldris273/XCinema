@@ -107,9 +107,8 @@ const WatchPartyRoom = () => {
       return;
     }
 
-
     const hub = new signalR.HubConnectionBuilder()
-      .withUrl(import.meta.env.VITE_HUB_URL)
+      .withUrl(import.meta.env.VITE_BACKEND_API_URL + "/watchpartyhub")
       .withAutomaticReconnect()
       .configureLogging(signalR.LogLevel.Information)
       .build();
@@ -364,7 +363,6 @@ const WatchPartyRoom = () => {
     if (!videoUrl) {
       return;
     }
-
 
     let hls;
 

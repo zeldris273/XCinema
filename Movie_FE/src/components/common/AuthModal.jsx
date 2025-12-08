@@ -30,7 +30,6 @@ export default function AuthModal({ show, onClose }) {
     const token = urlParams.get("token");
 
     if (token) {
-
       // Lưu token
       localStorage.setItem("accessToken", token);
       dispatch(setToken(token));
@@ -261,7 +260,7 @@ export default function AuthModal({ show, onClose }) {
     localStorage.setItem("loginRedirect", currentPath);
 
     window.location.href = `${
-      import.meta.env.VITE_API_URL
+      import.meta.env.VITE_BACKEND_API_URL
     }/api/auth/login/google`;
   };
 
@@ -270,7 +269,7 @@ export default function AuthModal({ show, onClose }) {
     localStorage.setItem("loginRedirect", currentPath);
 
     window.location.href = `${
-      import.meta.env.VITE_API_URL
+      import.meta.env.VITE_BACKEND_API_URL
     }/api/auth/login/github`;
   };
 

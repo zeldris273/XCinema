@@ -52,7 +52,7 @@ const CreateWatchParty = () => {
   };
 
   useEffect(() => {
-    token = localStorage.getItem("accessToken");
+    const token = localStorage.getItem("accessToken");
 
     if (!token) {
       customSwal("Unauthorized", "Please log in to create a room.", "error");

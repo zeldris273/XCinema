@@ -872,3 +872,5 @@ E:\XCinema\Movie_BE\obj\Debug\net8.0\refint\backend.dll
 E:\XCinema\Movie_BE\obj\Debug\net8.0\backend.pdb
 E:\XCinema\Movie_BE\obj\Debug\net8.0\backend.genruntimeconfig.cache
 E:\XCinema\Movie_BE\obj\Debug\net8.0\ref\backend.dll
+E:\XCinema\Movie_BE\bin\Debug\net8.0\DotNetEnv.dll
+E:\XCinema\Movie_BE\bin\Debug\net8.0\Sprache.dll

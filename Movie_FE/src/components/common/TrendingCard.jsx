@@ -13,9 +13,17 @@ export default function MovieCarousel() {
     const fetchTrending = async () => {
       try {
         const res = await api.get("/api/trending/all");
-        setMovies(res.data);
+        // Ensure we always set an array
+        const data = res.data;
+        if (Array.isArray(data)) {
+          setMovies(data);
+        } else {
+          console.error("Trending API did not return an array:", data);
+          setMovies([]);
+        }
       } catch (err) {
-        // Error fetching trending movies
+        console.error("Error fetching trending movies:", err);
+        setMovies([]);
       }
     };
 
@@ -50,13 +58,13 @@ export default function MovieCarousel() {
         <div
           className="flex transition-transform duration-500 ease-in-out"
           style={{
-            transform: `translateX(-${current * 25}%)`, // 25% = 100% / 4 items
+            transform: `translateX(-${current * 25}%)`,
           }}
         >
           {movies.map((movie, index) => (
             <div
               key={`${movie.id}-${index}`}
-              className="flex-shrink-0 w-1/4 px-2" // w-1/4 = 25% width cho 4 items
+              className="flex-shrink-0 w-1/4 px-2"
             >
               <div
                 className="bg-[#1a1a29] rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer"

@@ -10,9 +10,18 @@ const useFetch = (endpoint) => {
       setLoading(true);
       const response = await api.get(endpoint);
       setLoading(false);
-      setData(response.data);
+      // Ensure we always set an array
+      const responseData = response.data;
+      if (Array.isArray(responseData)) {
+        setData(responseData);
+      } else {
+        console.error(`useFetch: API endpoint ${endpoint} did not return an array:`, responseData);
+        setData([]);
+      }
     } catch (error) {
+      console.error(`useFetch: Error fetching ${endpoint}:`, error);
       setLoading(false);
+      setData([]);
     }
   };
 

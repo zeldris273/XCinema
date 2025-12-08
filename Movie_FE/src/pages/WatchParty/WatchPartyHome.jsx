@@ -38,9 +38,11 @@ const WatchPartyHome = () => {
       }
 
       const decoded = jwtDecode(token);
-      const userId = decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"];
+      const userId = decoded["sub"];
 
-      const response = await api.get(`/api/watchparty/my-rooms?userId=${userId}`);
+      const response = await api.get(
+        `/api/watchparty/my-rooms?userId=${userId}`
+      );
       if (response.data && response.data.length > 0) {
         setMyActiveRoom(response.data[0]);
       } else {
@@ -54,6 +56,7 @@ const WatchPartyHome = () => {
   const fetchPublicRooms = async () => {
     try {
       const res = await api.get("/api/watchparty/public-rooms");
+      console.log("Public Rooms:", res.data);
       setPublicRooms(res.data || []);
     } catch (err) {
       // Error fetching public rooms
@@ -106,7 +109,7 @@ const WatchPartyHome = () => {
     if (result.isConfirmed) {
       try {
         // Connect to SignalR to send EndSession
-        const hubUrl = `${import.meta.env.VITE_API_URL}/watchpartyhub`;
+        const hubUrl = `${import.meta.env.VITE_BACKEND_API_URL}/watchpartyhub`;
         const connection = new signalR.HubConnectionBuilder()
           .withUrl(hubUrl)
           .withAutomaticReconnect()
@@ -167,7 +170,9 @@ const WatchPartyHome = () => {
             )}
 
             {!loadingRooms && rooms.length === 0 && !error && (
-              <p className="text-gray-400 text-sm">You haven't created any rooms yet.</p>
+              <p className="text-gray-400 text-sm">
+                You haven't created any rooms yet.
+              </p>
             )}
 
             {!loadingRooms && rooms.length > 0 && (
@@ -252,17 +257,6 @@ const WatchPartyHome = () => {
             Watch Party
           </h1>
 
-          {/* Active Room Warning */}
-          {myActiveRoom && (
-            <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-lg px-4 py-3 max-w-md">
-              <p className="text-yellow-300 text-sm text-center">
-                ⚠️ You already have an active room: <strong>{myActiveRoom.roomId}</strong>
-                <br />
-                Please end the current room before creating a new one.
-              </p>
-            </div>
-          )}
-
           <div className="flex items-center gap-5">
             {/* Manage Rooms Button */}
             <button
@@ -274,23 +268,9 @@ const WatchPartyHome = () => {
 
             {/* Create New Room Button */}
             <button
-              onClick={() => {
-                if (myActiveRoom) {
-                  customSwal(
-                    "Cannot Create New Room",
-                    `You already have an active room: ${myActiveRoom.roomId}. Please end the current room before creating a new one.`,
-                    "warning"
-                  );
-                } else {
-                  setShowGuide(true);
-                }
-              }}
-              className={`px-7 py-3 flex items-center gap-2 rounded-full text-lg font-semibold shadow-lg hover:scale-105 transition-all ${
-                myActiveRoom
-                  ? "bg-gray-600 text-gray-300 cursor-not-allowed opacity-50"
-                  : "bg-[#352336] text-white"
+              onClick={() => setShowGuide(true)}
+              className={`px-7 py-3 flex items-center gap-2 rounded-full text-lg font-semibold shadow-lg hover:scale-105 transition-all bg-[#352336] text-white"
               }`}
-              disabled={myActiveRoom !== null}
             >
               <span className="text-2xl">＋</span> Create New
             </button>

@@ -14,9 +14,16 @@ export default function RecommendedMovies({ movieId }) {
         const res = await api.get(
           `/api/recommendation/similar/${movieId}?top_n=10`
         );
-        setMovies(res.data);
+        const data = res.data;
+        if (Array.isArray(data)) {
+          setMovies(data);
+        } else {
+          console.error("Similar movies API did not return an array:", data);
+          setMovies([]);
+        }
       } catch (error) {
-        // Error loading similar movies
+        console.error("Error loading similar movies:", error);
+        setMovies([]);
       }
     };
 

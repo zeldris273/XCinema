@@ -11,11 +11,13 @@ namespace backend.Controllers
     {
         private readonly MovieDbContext _context;
         private readonly HttpClient _httpClient;
+        private readonly string _mlServiceUrl;
 
-        public RecommendationController(MovieDbContext context, IHttpClientFactory httpClientFactory)
+        public RecommendationController(MovieDbContext context, IHttpClientFactory httpClientFactory, IConfiguration configuration)
         {
             _context = context;
             _httpClient = httpClientFactory.CreateClient();
+            _mlServiceUrl = configuration["MLService:BaseUrl"] ?? "http://localhost:8001";
         }
 
         [HttpGet("user/{userId}")]
@@ -25,7 +27,7 @@ namespace backend.Controllers
             {
                 // 🧠 Gọi FastAPI và deserialize thẳng vào model
                 var response = await _httpClient.GetFromJsonAsync<RecommendationResponseDto>(
-                    $"http://localhost:8001/recommend/{userId}?top_n={top_n}"
+                    $"{_mlServiceUrl}/recommend/{userId}?top_n={top_n}"
                 );
 
                 if (response == null || response.Recommendations.Count == 0)
@@ -87,7 +89,7 @@ namespace backend.Controllers
             try
             {
                 var response = await _httpClient.GetFromJsonAsync<SimilarResponseDto>(
-                    $"http://localhost:8001/similar/{movieId}?top_n={top_n}");
+                    $"{_mlServiceUrl}/similar/{movieId}?top_n={top_n}");
 
                 if (response == null || response.Recommendations.Count == 0)
                     return NotFound("Không có phim tương tự nào.");

@@ -16,10 +16,91 @@ using Movie_BE.Services;
 using Microsoft.AspNetCore.Identity;
 using backend.Models;
 using System.IdentityModel.Tokens.Jwt;
+using DotNetEnv;
+
 
 
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Load .env file from the current directory (Movie_BE folder)
+var envPath = Path.Combine(Directory.GetCurrentDirectory(), ".env");
+if (File.Exists(envPath))
+{
+    Env.Load(envPath);
+}
+
+builder.Configuration.AddEnvironmentVariables();
+
+// Manually replace environment variables in all configuration sections
+// 1. Database Connection String
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+if (!string.IsNullOrEmpty(connectionString))
+{
+    connectionString = connectionString
+        .Replace("${DB_HOST}", Environment.GetEnvironmentVariable("DB_HOST") ?? "localhost")
+        .Replace("${DB_USERNAME}", Environment.GetEnvironmentVariable("DB_USERNAME") ?? "postgres")
+        .Replace("${DB_PASSWORD}", Environment.GetEnvironmentVariable("DB_PASSWORD") ?? "postgres");
+
+    builder.Configuration["ConnectionStrings:DefaultConnection"] = connectionString;
+}
+
+// 2. JWT Configuration
+var jwtKey = builder.Configuration["Jwt:Key"]?
+    .Replace("${JWT_SECRET_KEY}", Environment.GetEnvironmentVariable("JWT_SECRET_KEY") ?? "");
+var jwtRefreshKey = builder.Configuration["Jwt:RefreshKey"]?
+    .Replace("${JWT_REFRESH}", Environment.GetEnvironmentVariable("JWT_REFRESH") ?? "");
+
+if (string.IsNullOrEmpty(jwtKey) || jwtKey.Length < 32 || jwtKey.Contains("${"))
+{
+    jwtKey = "SuperSecretKey123!@#$%^&*()567890"; // 36 chars
+    Console.WriteLine($"Warning: Using default JWT Key");
+}
+builder.Configuration["Jwt:Key"] = jwtKey;
+
+if (string.IsNullOrEmpty(jwtRefreshKey) || jwtRefreshKey.Length < 32 || jwtRefreshKey.Contains("${"))
+{
+    jwtRefreshKey = "your-secret-key-for-refresh-token-12345678"; // 45 chars
+    Console.WriteLine($"Warning: Using default JWT Refresh Key");
+}
+builder.Configuration["Jwt:RefreshKey"] = jwtRefreshKey;
+
+// 3. AWS Configuration
+builder.Configuration["AWS:Region"] = builder.Configuration["AWS:Region"]?
+    .Replace("${AWS_REGION}", Environment.GetEnvironmentVariable("AWS_REGION") ?? "ap-northeast-1") ?? "ap-northeast-1";
+builder.Configuration["AWS:AccessKey"] = builder.Configuration["AWS:AccessKey"]?
+    .Replace("${AWS_ACCESS_KEY_ID}", Environment.GetEnvironmentVariable("AWS_ACCESS_KEY_ID") ?? "") ?? "";
+builder.Configuration["AWS:SecretKey"] = builder.Configuration["AWS:SecretKey"]?
+    .Replace("${AWS_SECRET_KEY}", Environment.GetEnvironmentVariable("AWS_SECRET_KEY") ?? "") ?? "";
+builder.Configuration["AWS:CloudFrontDomain"] = builder.Configuration["AWS:CloudFrontDomain"]?
+    .Replace("${CLOUDFRONT_DOMAIN}", Environment.GetEnvironmentVariable("CLOUDFRONT_DOMAIN") ?? "") ?? "";
+
+// 4. SMTP Configuration
+builder.Configuration["Smtp:Host"] = builder.Configuration["Smtp:Host"]?
+    .Replace("${SMTP_HOST}", Environment.GetEnvironmentVariable("SMTP_HOST") ?? "smtp.gmail.com") ?? "smtp.gmail.com";
+builder.Configuration["Smtp:Username"] = builder.Configuration["Smtp:Username"]?
+    .Replace("${SMTP_USERNAME}", Environment.GetEnvironmentVariable("SMTP_USERNAME") ?? "") ?? "";
+builder.Configuration["Smtp:Password"] = builder.Configuration["Smtp:Password"]?
+    .Replace("${SMTP_PASSWORD}", Environment.GetEnvironmentVariable("SMTP_PASSWORD") ?? "") ?? "";
+
+// 5. Google Authentication
+builder.Configuration["Authentication:Google:ClientId"] = builder.Configuration["Authentication:Google:ClientId"]?
+    .Replace("${GOOGLE_CLIENT_ID}", Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID") ?? "") ?? "";
+builder.Configuration["Authentication:Google:ClientSecret"] = builder.Configuration["Authentication:Google:ClientSecret"]?
+    .Replace("${GOOGLE_CLIENT_SECRET}", Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET") ?? "") ?? "";
+
+// 6. GitHub Authentication
+builder.Configuration["Authentication:GitHub:ClientId"] = builder.Configuration["Authentication:GitHub:ClientId"]?
+    .Replace("${GITHUB_CLIENT_ID}", Environment.GetEnvironmentVariable("GITHUB_CLIENT_ID") ?? "") ?? "";
+builder.Configuration["Authentication:GitHub:ClientSecret"] = builder.Configuration["Authentication:GitHub:ClientSecret"]?
+    .Replace("${GITHUB_CLIENT_SECRET}", Environment.GetEnvironmentVariable("GITHUB_CLIENT_SECRET") ?? "") ?? "";
+
+// 7. ML Service Configuration
+builder.Configuration["MLService:BaseUrl"] = builder.Configuration["MLService:BaseUrl"]?
+    .Replace("${ML_SERVICE_URL}", Environment.GetEnvironmentVariable("ML_SERVICE_URL") ?? "http://localhost:8000") ?? "http://localhost:8000";
+
+builder.Configuration["OpenAI:ApiKey"] = builder.Configuration["OpenAI:ApiKey"]?
+    .Replace("${OPENAI_API_KEY}", Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? "") ?? "";
 
 JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 JwtSecurityTokenHandler.DefaultOutboundClaimTypeMap.Clear();
