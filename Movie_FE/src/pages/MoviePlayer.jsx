@@ -6,6 +6,8 @@ import VideoFrame from "../components/frame/VideoFrame";
 import RecommendedMovies from "../components/common/RecommendedMovies";
 import LikeDislikeButton from "../components/common/LikeDislikeButton";
 import CommentLikeButton from "../components/common/CommentLikeButton";
+import AuthModal from "../components/common/AuthModal";
+import customToast from "../utils/customToast";
 
 const MoviePlayer = () => {
   const { id, title, episodeNumber } = useParams();
@@ -36,6 +38,7 @@ const MoviePlayer = () => {
   const [currentUserId, setCurrentUserId] = useState(null);
   const [showResumePrompt, setShowResumePrompt] = useState(false);
   const [savedTime, setSavedTime] = useState(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const videoRef = useRef(null);
   const containerRef = useRef(null);
   const controlsTimeoutRef = useRef(null);
@@ -84,6 +87,7 @@ const MoviePlayer = () => {
     setShowResumePrompt(false);
   };
 
+  // Check if user is logged in without redirecting
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
     if (token) {
@@ -92,18 +96,12 @@ const MoviePlayer = () => {
         const userId = decoded["sub"];
         setCurrentUserId(parseInt(userId, 10));
       } catch (err) {
-        setError("Invalid token. Please log in again.");
-        const currentPath = location.pathname + location.search;
-        localStorage.setItem("loginRedirect", currentPath);
-        navigate("/auth");
+        // Invalid token, just clear it
+        localStorage.removeItem("accessToken");
+        setCurrentUserId(null);
       }
-    } else {
-      setError("You are not logged in. Please log in to continue.");
-      const currentPath = location.pathname + location.search;
-      localStorage.setItem("loginRedirect", currentPath);
-      navigate("/auth");
     }
-  }, [navigate]);
+  }, []);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -335,6 +333,13 @@ const MoviePlayer = () => {
     e.preventDefault();
     if (!newComment.trim()) return;
 
+    // Check if user is logged in
+    if (!currentUserId) {
+      customToast("Please log in to comment", "warning");
+      setShowAuthModal(true);
+      return;
+    }
+
     const episodeId = mediaType === "tv" ? getEpisodeId() : null;
 
     try {
@@ -366,6 +371,13 @@ const MoviePlayer = () => {
   const handleReplyComment = async (e, parentCommentId) => {
     e.preventDefault();
     if (!replyText.trim()) return;
+
+    // Check if user is logged in
+    if (!currentUserId) {
+      customToast("Please log in to reply comment", "warning");
+      setShowAuthModal(true);
+      return;
+    }
 
     const episodeId = mediaType === "tv" ? getEpisodeId() : null;
 
@@ -742,17 +754,6 @@ const MoviePlayer = () => {
     );
   }
 
-  if (!currentUserId) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-gray-700 border-t-yellow-400 mb-4"></div>
-          <p className="text-white text-lg">Authenticating...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="bg-gradient-to-br from-gray-900 via-black to-gray-900 min-h-screen text-white">
       {showResumePrompt && (
@@ -1039,6 +1040,26 @@ const MoviePlayer = () => {
       </div>
 
       <RecommendedMovies movieId={id} />
+
+      {/* Auth Modal */}
+      <AuthModal
+        show={showAuthModal}
+        onClose={() => {
+          setShowAuthModal(false);
+          // Re-check authentication after modal closes
+          const token = localStorage.getItem("accessToken");
+          if (token) {
+            try {
+              const decoded = jwtDecode(token);
+              const userId = decoded["sub"];
+              setCurrentUserId(parseInt(userId, 10));
+            } catch (err) {
+              localStorage.removeItem("accessToken");
+              setCurrentUserId(null);
+            }
+          }
+        }}
+      />
     </div>
   );
 };

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import api from "../api/api.jsx";
 import { useUserProfile } from "../hooks/useUserProfile.jsx";
+import AuthModal from "../components/common/AuthModal.jsx";
 
 export default function AccountPage() {
   const [avatar, setAvatar] = useState(null);
@@ -9,6 +10,7 @@ export default function AccountPage() {
   const [gender, setGender] = useState("Nam");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
   const { profile, updateProfile } = useUserProfile();
 
   useEffect(() => {
@@ -199,10 +201,20 @@ export default function AccountPage() {
 
       <p className="mt-6 text-gray-300">
         Đổi mật khẩu, nhấn vào{" "}
-        <a href="#" className="text-yellow-400 hover:underline">
+        <button
+          onClick={() => setShowForgotPasswordModal(true)}
+          className="text-yellow-400 hover:underline focus:outline-none"
+        >
           đây
-        </a>
+        </button>
       </p>
+
+      {/* Forgot Password Modal */}
+      <AuthModal
+        show={showForgotPasswordModal}
+        onClose={() => setShowForgotPasswordModal(false)}
+        initialMode="forgot"
+      />
     </div>
   );
 }

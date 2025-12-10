@@ -4,8 +4,7 @@ import Home from "../pages/Home";
 import ExplorePage from "../pages/ExplorePage";
 import DetailsPage from "../pages/DetailsPage";
 import SearchPage from "../pages/SearchPage";
-import AuthPage from "../pages/AuthPage";
-import Watchlist from "../pages/Watchlist";
+import WatchList from "../pages/WatchList";
 import MoviePlayer from "../pages/MoviePlayer";
 import AdminDashboard from "../pages/AdminDashboard";
 import NotFoundPage from "../pages/NotFoundPage";
@@ -14,6 +13,7 @@ import GenrePage from "../pages/GenrePage";
 import CreateWatchParty from "../pages/WatchParty/CreateWatchParty";
 import WatchPartyHome from "../pages/WatchParty/WatchPartyHome";
 import WatchPartyRoom from "../pages/WatchParty/WatchPartyRoom";
+import OAuthCallback from "../pages/OAuthCallback";
 
 const router = createBrowserRouter([
   {
@@ -61,12 +61,8 @@ const router = createBrowserRouter([
         element: <SearchPage />,
       },
       {
-        path: "auth",
-        element: <AuthPage />,
-      },
-      {
         path: "user/watchlist",
-        element: <Watchlist />,
+        element: <WatchList />,
       },
       {
         path: "admin-dashboard",
@@ -79,6 +75,10 @@ const router = createBrowserRouter([
       {
         path: "user/profile",
         element: <ProfilePage />,
+      },
+      {
+        path: "auth",
+        element: <OAuthCallback />,
       },
       {
         path: "*",

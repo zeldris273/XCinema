@@ -39,8 +39,10 @@ if (!string.IsNullOrEmpty(connectionString))
 {
     connectionString = connectionString
         .Replace("${DB_HOST}", Environment.GetEnvironmentVariable("DB_HOST") ?? "localhost")
+        .Replace("${DB_NAME}", Environment.GetEnvironmentVariable("DB_NAME") ?? "XCinema")
+        .Replace("${DB_PORT}", Environment.GetEnvironmentVariable("DB_PORT") ?? "5432")
         .Replace("${DB_USERNAME}", Environment.GetEnvironmentVariable("DB_USERNAME") ?? "postgres")
-        .Replace("${DB_PASSWORD}", Environment.GetEnvironmentVariable("DB_PASSWORD") ?? "postgres");
+        .Replace("${DB_PASSWORD}", Environment.GetEnvironmentVariable("DB_PASSWORD") ?? "12345");
 
     builder.Configuration["ConnectionStrings:DefaultConnection"] = connectionString;
 }
@@ -78,6 +80,8 @@ builder.Configuration["AWS:CloudFrontDomain"] = builder.Configuration["AWS:Cloud
 // 4. SMTP Configuration
 builder.Configuration["Smtp:Host"] = builder.Configuration["Smtp:Host"]?
     .Replace("${SMTP_HOST}", Environment.GetEnvironmentVariable("SMTP_HOST") ?? "smtp.gmail.com") ?? "smtp.gmail.com";
+builder.Configuration["Smtp:Port"] = builder.Configuration["Smtp:Port"]?
+    .Replace("${SMTP_PORT}", Environment.GetEnvironmentVariable("SMTP_PORT") ?? "587") ?? "587";
 builder.Configuration["Smtp:Username"] = builder.Configuration["Smtp:Username"]?
     .Replace("${SMTP_USERNAME}", Environment.GetEnvironmentVariable("SMTP_USERNAME") ?? "") ?? "";
 builder.Configuration["Smtp:Password"] = builder.Configuration["Smtp:Password"]?
@@ -200,14 +204,14 @@ builder.Services.AddAuthentication(options =>
     options.ClientId = builder.Configuration["Authentication:Google:ClientId"];
     options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
     options.SignInScheme = IdentityConstants.ExternalScheme;
-    options.CallbackPath = "/signin-google"; // Đường dẫn callback
+    options.CallbackPath = "/signin-google"; // Đường dẫn callback mặc định của Google
 })
 // Thêm GitHub Authentication (sử dụng OpenIdConnect hoặc phiên bản cũ tương thích)
 .AddGitHub("GitHub", options =>
 {
     options.ClientId = builder.Configuration["Authentication:GitHub:ClientId"];
     options.ClientSecret = builder.Configuration["Authentication:GitHub:ClientSecret"];
-    options.CallbackPath = "/signin-github"; // Đường dẫn callback
+    options.CallbackPath = "/signin-github"; // Đường dẫn callback mặc định của GitHub
     options.Scope.Add("user:email"); // Yêu cầu email từ GitHub
     options.SignInScheme = IdentityConstants.ExternalScheme;
 });
@@ -218,14 +222,16 @@ builder.Services.AddHostedService<WatchPartySchedulerService>();
 // Thêm CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowFrontend", builder =>
+    options.AddPolicy("AllowAll", policy =>
     {
-        builder.WithOrigins("http://localhost:5173", "http://localhost:5116")
-               .AllowAnyMethod()
-               .AllowAnyHeader()
-               .AllowCredentials();
+        policy
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials()
+            .SetIsOriginAllowed(_ => true);
     });
 });
+
 
 builder.Services.AddMemoryCache();
 
@@ -234,6 +240,7 @@ builder.Services.AddHttpClient();
 
 
 var app = builder.Build();
+
 
 // 1. Thêm vào Program.cs để debug roles
 using (var scope = app.Services.CreateScope())
@@ -253,11 +260,13 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
+
+
 // Middleware pipeline
 app.UseRouting();
 // CORS must be placed after UseRouting and before auth
-app.UseCors("AllowFrontend");
-app.MapHub<WatchPartyHub>("/watchpartyhub").RequireCors("AllowFrontend");
+app.UseCors("AllowAll");
+app.MapHub<WatchPartyHub>("/watchpartyhub").RequireCors("AllowAll");
 
 app.UseAuthentication();
 app.UseAuthorization();

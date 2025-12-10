@@ -183,16 +183,34 @@ namespace backend.Services
             var otp = GenerateOtp();
             try
             {
-                var smtpClient = new SmtpClient(_config["Smtp:Host"])
+                var smtpHost = _config["Smtp:Host"];
+                var smtpPort = _config["Smtp:Port"];
+                var smtpUsername = _config["Smtp:Username"];
+                var smtpPassword = _config["Smtp:Password"];
+
+                // Log để debug (chỉ trong development)
+                Console.WriteLine($"[DEBUG] SMTP Host: {smtpHost}");
+                Console.WriteLine($"[DEBUG] SMTP Port: {smtpPort}");
+                Console.WriteLine($"[DEBUG] SMTP Username: {smtpUsername}");
+                Console.WriteLine($"[DEBUG] Sending OTP to: {email}");
+
+                if (string.IsNullOrEmpty(smtpHost) || string.IsNullOrEmpty(smtpPort) || 
+                    string.IsNullOrEmpty(smtpUsername) || string.IsNullOrEmpty(smtpPassword))
                 {
-                    Port = int.Parse(_config["Smtp:Port"]),
-                    Credentials = new NetworkCredential(_config["Smtp:Username"], _config["Smtp:Password"]),
+                    Console.WriteLine("[ERROR] SMTP configuration is missing!");
+                    return false;
+                }
+
+                var smtpClient = new SmtpClient(smtpHost)
+                {
+                    Port = int.Parse(smtpPort),
+                    Credentials = new NetworkCredential(smtpUsername, smtpPassword),
                     EnableSsl = true,
                 };
 
                 var mailMessage = new MailMessage
                 {
-                    From = new MailAddress(_config["Smtp:Username"]),
+                    From = new MailAddress(smtpUsername),
                     Subject = "Your OTP Code",
                     Body = $"Your OTP code is: {otp}. It is valid for 5 minutes.",
                 };
@@ -201,10 +219,13 @@ namespace backend.Services
                 await smtpClient.SendMailAsync(mailMessage);
                 _cache.Set(email, (otp, DateTime.UtcNow.AddMinutes(5)), TimeSpan.FromMinutes(5));
 
+                Console.WriteLine($"[SUCCESS] OTP sent successfully to {email}");
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
+                Console.WriteLine($"[ERROR] Failed to send OTP: {ex.Message}");
+                Console.WriteLine($"[ERROR] Stack trace: {ex.StackTrace}");
                 return false;
             }
         }

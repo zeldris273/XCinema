@@ -276,8 +276,9 @@ cd Ml_service/movie_recommends
 # Create virtual environment
 python -m venv venv
 source venv/bin/activate  # Linux/Mac
-# hoặc
-venv\Scripts\activate  # Windows
+
+# Run venv
+.\venv\Scripts\Activate.ps1  # Windows
 
 # Install dependencies
 pip install fastapi uvicorn pandas "numpy<2" "scikit-learn<1.4" "scikit-surprise==1.1.3"
@@ -290,13 +291,22 @@ ML API: http://localhost:8000
 
 ### 3️⃣ Cấu Hình
 
-#### Backend Configuration (.env)
+#### Backend/Docker Configuration (.env)
 
+Nếu chạy trên local với không Docker thì hãy để file .env ở trong folder Backend. Ngược lại hãy để ở thư mục root
+
+```env
 ## Database configuration
 
-DB_HOST=localhost
-DB_USERNAME=postgres
-DB_PASSWORD=12345
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=12345
+POSTGRES_DB=xcinema
+
+DB_HOST=postgres
+DB_PORT=5432
+DB_NAME=xcinema
+DB_USER=postgres
+DB_PASS=12345
 
 ## AWS S3 configuration
 
@@ -312,7 +322,9 @@ JWt_REFRESH=your-secret-key-for-refresh-token
 
 ## Smtp configuration
 
+SMTP_HOST=smtp.gmail.com
 SMTP_USERNAME=
+SMTP_PORT=587
 SMTP_PASSWORD=
 
 ## Authentication configuration
@@ -330,12 +342,15 @@ UVICORN_URL=http://localhost:8000
 ## OpenAI API Key
 
 OPENAI_API_KEY=
+```
 
 #### Frontend Configuration (.env)
 
+```env
 ## Backend API URL
 
 VITE_BACKEND_API_URL=http://localhost:5116
+```
 
 ---
 
@@ -487,7 +502,6 @@ XCinema/
 ## 📧 Contact
 
 - **Nguyễn Văn Hiếu** - [nvh.27304@gmail.com](mailto:nvh.27304@gmail.com)
-- **Nguyễn Đức Trung** - [email@example.com](mailto:email@example.com)
 
 Project Link: [https://github.com/zeldris273/XCinema](https://github.com/zeldris273/XCinema)
 

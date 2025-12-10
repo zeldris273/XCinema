@@ -180,7 +180,7 @@ namespace backend.Controllers
         [HttpGet("login/google")]
         public IActionResult LoginWithGoogle(string returnUrl = null)
         {
-            var redirectUrl = Url.Action("ExternalLoginCallback", "Auth", new { provider = "Google", returnUrl = returnUrl }, Request.Scheme);
+            var redirectUrl = Url.Action("GoogleCallback", "Auth", new { returnUrl = returnUrl }, Request.Scheme);
             var properties = _signInManager.ConfigureExternalAuthenticationProperties("Google", redirectUrl);
             return Challenge(properties, "Google");
         }
@@ -189,14 +189,27 @@ namespace backend.Controllers
         [HttpGet("login/github")]
         public IActionResult LoginWithGitHub(string returnUrl = null)
         {
-            var redirectUrl = Url.Action("ExternalLoginCallback", "Auth", new { provider = "GitHub", returnUrl = returnUrl }, Request.Scheme);
+            var redirectUrl = Url.Action("GitHubCallback", "Auth", new { returnUrl = returnUrl }, Request.Scheme);
             var properties = _signInManager.ConfigureExternalAuthenticationProperties("GitHub", redirectUrl);
             return Challenge(properties, "GitHub");
         }
 
-        // Xử lý callback từ Google/GitHub
-        [HttpGet("external-login-callback")]
-        public async Task<IActionResult> ExternalLoginCallback(string provider, string returnUrl = null)
+        // Xử lý callback từ Google
+        [HttpGet("google-callback")]
+        public async Task<IActionResult> GoogleCallback(string returnUrl = null)
+        {
+            return await HandleExternalLoginCallback("Google", returnUrl);
+        }
+
+        // Xử lý callback từ GitHub
+        [HttpGet("github-callback")]
+        public async Task<IActionResult> GitHubCallback(string returnUrl = null)
+        {
+            return await HandleExternalLoginCallback("GitHub", returnUrl);
+        }
+
+        // Logic xử lý chung cho external login
+        private async Task<IActionResult> HandleExternalLoginCallback(string provider, string returnUrl = null)
         {
             var info = await _signInManager.GetExternalLoginInfoAsync();
             if (info == null)
@@ -221,14 +234,14 @@ namespace backend.Controllers
             Response.Cookies.Append("RefreshToken", refreshToken, cookieOptions);
 
             // Chuyển hướng về frontend với token và returnUrl
-            string frontendUrl = "http://localhost:5173/auth";
+            string frontendUrl = "http://localhost/auth";
             var redirectUrl = $"{frontendUrl}?token={Uri.EscapeDataString(accessToken)}";
-            
+
             if (!string.IsNullOrEmpty(returnUrl))
             {
                 redirectUrl += $"&returnUrl={Uri.EscapeDataString(returnUrl)}";
             }
-            
+
             return Redirect(redirectUrl);
         }
 

@@ -3,63 +3,133 @@ version: '3.8'
 services:
   postgres:
     image: postgres:15-alpine
-    container_name: movieapp-postgres
+    container_name: xcinema-postgres
     environment:
-      POSTGRES_DB: MovieApp
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 12345
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - movieapp-network
+      - xcinema-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 10s
       timeout: 5s
       retries: 5
+
+
+  # ✅ MIGRATION - Sử dụng SDK image để chạy EF Core tools
+  migration:
+    image: mcr.microsoft.com/dotnet/sdk:8.0
+    container_name: xcinema-migration
+    working_dir: /src
+    volumes:
+      - ./Movie_BE:/src
+    command: >
+      sh -c "dotnet tool restore &&
+             dotnet ef database update --project backend.csproj --verbose &&
+             echo ' Migration completed successfully!'"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASS}
+      ConnectionStrings__DefaultConnection: "Host=${DB_HOST};Port=${DB_PORT};Database=${DB_NAME};Username=${DB_USER};Password=${DB_PASS}"
+    networks:
+      - xcinema-network
+    restart: "no"
+
 
   backend:
     build:
       context: ./Movie_BE
       dockerfile: Dockerfile
-    container_name: movieapp-backend
+    container_name: xcinema-backend
     environment:
-      - ASPNETCORE_ENVIRONMENT=Production
-      - ASPNETCORE_URLS=http://+:8080
-      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=MovieApp;Username=postgres;Password=12345
+      ASPNETCORE_URLS: ${ASPNETCORE_URLS}
+
+      # DATABASE
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASS}
+      ConnectionStrings__DefaultConnection: "Host=${DB_HOST};Port=${DB_PORT};Database=${DB_NAME};Username=${DB_USER};Password=${DB_PASS}"
+
+      # AWS
+      AWS__Region: ${AWS_REGION}
+      AWS__AccessKey: ${AWS_ACCESS_KEY_ID}
+      AWS__SecretKey: ${AWS_SECRET_KEY}
+      AWS__CloudFrontDomain: ${CLOUDFRONT_DOMAIN}
+
+      # JWT
+      Jwt__Key: ${JWT_SECRET_KEY}
+      Jwt__RefreshKey: ${JWT_REFRESH}
+      Jwt__Issuer: "Xcinema"
+      Jwt__Audience: "Xcinema"
+
+      # SMTP
+      Smtp__Host: ${SMTP_HOST}
+      Smtp__Port: ${SMTP_PORT}
+      Smtp__Username: ${SMTP_USERNAME}
+      Smtp__Password: ${SMTP_PASSWORD}
+
+      # GOOGLE LOGIN
+      Authentication__Google__ClientId: ${GOOGLE_CLIENT_ID}
+      Authentication__Google__ClientSecret: ${GOOGLE_CLIENT_SECRET}
+
+      # GITHUB LOGIN
+      Authentication__GitHub__ClientId: ${GITHUB_CLIENT_ID}
+      Authentication__GitHub__ClientSecret: ${GITHUB_CLIENT_SECRET}
+
+      # ML SERVICE
+      MLService__BaseUrl: ${ML_SERVICE_URL}
+
+      # OPENAI
+      OpenAI__ApiKey: ${OPENAI_API_KEY}
+
     ports:
-      - "5000:8080"
+      - "5000:5000"
     depends_on:
       postgres:
         condition: service_healthy
+      migration:
+        condition: service_completed_successfully
     networks:
-      - movieapp-network
+      - xcinema-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      test: ["CMD", "curl", "-f", "http://localhost:5000"]
       interval: 30s
       timeout: 10s
       retries: 3
+
 
   frontend:
     build:
       context: ./Movie_FE
       dockerfile: Dockerfile
-    container_name: movieapp-frontend
+    container_name: xcinema-frontend
     ports:
       - "80:80"
     depends_on:
       - backend
     networks:
-      - movieapp-network
+      - xcinema-network
     restart: unless-stopped
+
 
 volumes:
   postgres_data:
     driver: local
 
 networks:
-  movieapp-network:
+  xcinema-network:
     driver: bridge

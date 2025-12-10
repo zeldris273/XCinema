@@ -7,9 +7,9 @@ import api from "../../api/api";
 import customToast from "../../utils/customToast";
 import { createPortal } from "react-dom";
 
-export default function AuthModal({ show, onClose }) {
-  const [isLogin, setIsLogin] = useState(true);
-  const [isForgotPassword, setIsForgotPassword] = useState(false);
+export default function AuthModal({ show, onClose, initialMode = "login" }) {
+  const [isLogin, setIsLogin] = useState(initialMode === "login");
+  const [isForgotPassword, setIsForgotPassword] = useState(initialMode === "forgot");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
@@ -100,6 +100,23 @@ export default function AuthModal({ show, onClose }) {
     return () => clearTimeout(timer);
   }, [countdown]);
 
+  // Reset form when modal opens with initial mode
+  useEffect(() => {
+    if (show) {
+      resetForm();
+      if (initialMode === "login") {
+        setIsLogin(true);
+        setIsForgotPassword(false);
+      } else if (initialMode === "register") {
+        setIsLogin(false);
+        setIsForgotPassword(false);
+      } else if (initialMode === "forgot") {
+        setIsLogin(false);
+        setIsForgotPassword(true);
+      }
+    }
+  }, [show, initialMode]);
+
   const resetForm = () => {
     setEmail("");
     setPassword("");
@@ -155,11 +172,7 @@ export default function AuthModal({ show, onClose }) {
         customToast("OTP sent! Check your inbox.", "success");
       }
     } catch (err) {
-      customSwal(
-        "Failed",
-        err.response?.data?.message || "Unable to send OTP",
-        "error"
-      );
+      customToast(err.response?.data?.message || "Unable to send OTP", "error");
     } finally {
       setOtpLoading(false);
     }

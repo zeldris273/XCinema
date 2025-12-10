@@ -5,7 +5,7 @@ import moment from "moment";
 import Divider from "../components/common/Divider";
 import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
 import "react-circular-progressbar/dist/styles.css";
-import VideoTrailerFrame from "../components/Frame/VideoTrailerFrame";
+import VideoTrailerFrame from "../components/frame/VideoTrailerFrame";
 import api from "../api/api";
 import { FaStar } from "react-icons/fa";
 import { FaUser } from "react-icons/fa";
@@ -14,7 +14,6 @@ import Slug from "../utils/Slug";
 import customSwal from "../utils/customSwal";
 import { useDispatch } from "react-redux";
 import { setSelectedMovie } from "../store/movieSlice.js";
-import LikeDislikeButton from "../components/common/LikeDislikeButton";
 
 const DetailsPage = () => {
   const { id, title: urlTitle } = useParams();
@@ -74,44 +73,11 @@ const DetailsPage = () => {
     fetchEpisodes();
   }, [mediaType, id]);
 
-  useEffect(() => {
-    const token = localStorage.getItem("accessToken");
-    if (token) {
-      try {
-        const decoded = jwtDecode(token);
-        const role = decoded["role"];
-        setIsAdmin(role === "Admin");
-        setIsUser(role === "User");
-
-        if (role !== "Admin" && role !== "User") {
-          customSwal(
-            "Cảnh báo!",
-            "Bạn không có quyền truy cập trang này!",
-            "warning"
-          );
-          navigate("/");
-        }
-      } catch (err) {
-        customSwal("Lỗi!", "Token không hợp lệ!", "error");
-        const currentPath = location.pathname + location.search;
-        localStorage.setItem("loginRedirect", currentPath);
-        navigate("/auth");
-      }
-    } else {
-      customSwal("Lỗi!", "Bạn chưa đăng nhập!", "error");
-      const currentPath = location.pathname + location.search;
-      localStorage.setItem("loginRedirect", currentPath);
-      navigate("/auth");
-    }
-  }, [navigate]);
-
   const handleAddToWatchList = async () => {
     const token = localStorage.getItem("accessToken");
     if (!token) {
-      customSwal("Lỗi", "Please log in to add to watch list.", "error");
+      customSwal("Error", "Please log in to add to watch list.", "error");
       const currentPath = location.pathname + location.search;
-      localStorage.setItem("loginRedirect", currentPath);
-      navigate("/auth");
       return;
     }
 
@@ -150,10 +116,8 @@ const DetailsPage = () => {
   const handleRatingSubmit = async (rating) => {
     const token = localStorage.getItem("accessToken");
     if (!token) {
-      customSwal("Lỗi", "Please log in to rate this media.", "error");
+      customSwal("Error", "Please log in to rate this media.", "error");
       const currentPath = location.pathname + location.search;
-      localStorage.setItem("loginRedirect", currentPath);
-      navigate("/auth");
       return;
     }
 
@@ -231,8 +195,8 @@ const DetailsPage = () => {
 
       // TV SERIES — LẤY VideoUrl TỪ Episode
       // Find the season info to get the correct seasonNumber
-      const season = data.seasons?.find(s => s.id === firstEpisode.seasonId);
-      
+      const season = data.seasons?.find((s) => s.id === firstEpisode.seasonId);
+
       dispatch(
         setSelectedMovie({
           id: data.id,

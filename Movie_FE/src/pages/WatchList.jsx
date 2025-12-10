@@ -129,7 +129,7 @@ const Watchlist = () => {
                       item.posterUrl || "https://via.placeholder.com/230x345"
                     }
                     alt={item.title}
-                    className="w-full h-60 object-cover rounded-lg transition-transform duration-300 group-hover:scale-105"
+                    className="w-full h-full object-contain rounded-lg transition-transform duration-300 group-hover:scale-105"
                   />
                   <h3 className="text-white mt-2 text-center text-sm font-medium">
                     {item.title}
