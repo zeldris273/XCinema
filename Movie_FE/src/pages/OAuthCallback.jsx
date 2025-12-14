@@ -17,8 +17,8 @@ export default function OAuthCallback() {
       // Lưu token vào Redux store
       dispatch(setToken(token));
       
-      // Lưu token vào localStorage
-      localStorage.setItem("token", token);
+      // Lưu token vào localStorage (sử dụng "accessToken" để nhất quán)
+      localStorage.setItem("accessToken", token);
       
       customToast("Login successful!", "success");
 

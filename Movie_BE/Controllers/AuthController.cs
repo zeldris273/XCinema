@@ -15,18 +15,25 @@ namespace backend.Controllers
     {
         private readonly AuthService _authService;
         private readonly UserManager<CustomUser> _userManager;
-
         private readonly SignInManager<CustomUser> _signInManager;
         private readonly IWebHostEnvironment _env;
         private readonly S3Service _s3Service;
+        private readonly IConfiguration _configuration;
 
-        public AuthController(AuthService authService, UserManager<CustomUser> userManager, SignInManager<CustomUser> signInManager, IWebHostEnvironment env, S3Service s3Service)
+        public AuthController(
+            AuthService authService, 
+            UserManager<CustomUser> userManager, 
+            SignInManager<CustomUser> signInManager, 
+            IWebHostEnvironment env, 
+            S3Service s3Service,
+            IConfiguration configuration)
         {
             _signInManager = signInManager;
             _authService = authService;
             _userManager = userManager;
             _env = env;
             _s3Service = s3Service;
+            _configuration = configuration;
         }
 
         [HttpPost("login")]
@@ -234,8 +241,8 @@ namespace backend.Controllers
             Response.Cookies.Append("RefreshToken", refreshToken, cookieOptions);
 
             // Chuyển hướng về frontend với token và returnUrl
-            string frontendUrl = "http://localhost/auth";
-            var redirectUrl = $"{frontendUrl}?token={Uri.EscapeDataString(accessToken)}";
+            string frontendUrl = _configuration["Frontend:Url"] ?? "http://localhost";
+            var redirectUrl = $"{frontendUrl}/auth?token={Uri.EscapeDataString(accessToken)}";
 
             if (!string.IsNullOrEmpty(returnUrl))
             {

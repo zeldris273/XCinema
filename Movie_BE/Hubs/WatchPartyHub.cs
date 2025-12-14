@@ -33,7 +33,7 @@ namespace backend.Hubs
             {
 
                 var hostProfile = await _authService.GetUserProfile(int.Parse(hostUserId));
-                var displayName = hostProfile?.DisplayName ?? $"User {hostUserId}";
+                var displayName = hostProfile?.DisplayName ?? hostProfile?.Email ?? $"User {hostUserId}";
                 var avatarUrl = hostProfile?.AvatarUrl
                     ?? $"https://api.dicebear.com/7.x/bottts/svg?seed={hostUserId}";
 
@@ -155,9 +155,12 @@ namespace backend.Hubs
 
                     if (room.Viewers.Remove(userId))
                     {
-                        string displayName = int.TryParse(userId, out int parsedId)
-                            ? (await _authService.GetUserProfile(parsedId))?.DisplayName ?? $"User {userId}"
-                            : "1 khách";
+                        string displayName = "1 khách";
+                        if (int.TryParse(userId, out int parsedId))
+                        {
+                            var profile = await _authService.GetUserProfile(parsedId);
+                            displayName = profile?.DisplayName ?? profile?.Email ?? $"User {userId}";
+                        }
 
 
                         await Clients.Group(room.RoomId)

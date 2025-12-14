@@ -653,7 +653,7 @@ const WatchPartyRoom = () => {
         handleKeyPress={handleKeyPress}
         handleSend={handleSend}
         currentUser={
-          userProfile.displayName || userProfile.email || currentUser
+          userProfile.displayName || currentUser
         }
         avatarUrl={userProfile.avatarUrl}
         isConnected={isConnected}

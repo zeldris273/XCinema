@@ -25,8 +25,8 @@ const ChatBox = ({
     if (token) {
       try {
         const decoded = jwtDecode(token);
-        const displayName =
-          decoded["DisplayName"] || decoded["email"] || decoded["sub"];
+        // JWT token chỉ có sub, email, role. Không có DisplayName!
+        const displayName = decoded["email"] || decoded["sub"];
         setLocalUser(displayName);
         setIsLoggedIn(true);
       } catch {
@@ -79,7 +79,8 @@ const ChatBox = ({
           ))}
 
           {messages.map((m, i) => {
-            const isMine = m.user === localUser;
+            // So sánh với currentUser được truyền từ parent (đã có displayName đúng)
+            const isMine = m.user === currentUser;
             return (
               <div
                 key={i}
@@ -182,8 +183,8 @@ const ChatBox = ({
             if (token) {
               try {
                 const decoded = jwtDecode(token);
-                const displayName =
-                  decoded["DisplayName"] || decoded["email"] || decoded["sub"];
+                // JWT token chỉ có sub, email, role. Không có DisplayName!
+                const displayName = decoded["email"] || decoded["sub"];
                 setLocalUser(displayName);
                 setIsLoggedIn(true);
               } catch {}

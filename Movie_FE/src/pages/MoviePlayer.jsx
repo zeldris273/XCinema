@@ -676,7 +676,13 @@ const MoviePlayer = () => {
             <textarea
               value={replyText}
               onChange={(e) => setReplyText(e.target.value)}
-              placeholder="Write a reply..."
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleReplyComment(e, comment.id);
+                }
+              }}
+              placeholder="Write a reply... (Press Enter to post)"
               className="w-full p-3 rounded-xl bg-gray-900/50 text-white text-sm border border-gray-700 focus:outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 transition-all duration-200 resize-none"
               rows="2"
             />
@@ -984,6 +990,12 @@ const MoviePlayer = () => {
             <textarea
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleAddComment(e);
+                }
+              }}
               placeholder="Share your thoughts..."
               className="w-full p-4 pr-24 rounded-2xl bg-gradient-to-br from-gray-800/80 to-gray-900/80 backdrop-blur-sm text-white text-sm sm:text-base border border-gray-700 focus:outline-none focus:border-yellow-400 focus:ring-4 focus:ring-yellow-400/20 transition-all duration-200 resize-none placeholder-gray-500"
               rows="3"

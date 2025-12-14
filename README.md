@@ -293,7 +293,7 @@ ML API: http://localhost:8000
 
 #### Backend/Docker Configuration (.env)
 
-Nếu chạy trên local với không Docker thì hãy để file .env ở trong folder Backend. Ngược lại hãy để ở thư mục root
+Nếu chạy trên local với không Docker thì hãy để file .env ở trong thư mục Backend. Ngược lại hãy để ở thư mục root
 
 ```env
 ## Database configuration

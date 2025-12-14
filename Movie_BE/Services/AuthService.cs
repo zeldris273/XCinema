@@ -188,13 +188,8 @@ namespace backend.Services
                 var smtpUsername = _config["Smtp:Username"];
                 var smtpPassword = _config["Smtp:Password"];
 
-                // Log để debug (chỉ trong development)
-                Console.WriteLine($"[DEBUG] SMTP Host: {smtpHost}");
-                Console.WriteLine($"[DEBUG] SMTP Port: {smtpPort}");
-                Console.WriteLine($"[DEBUG] SMTP Username: {smtpUsername}");
-                Console.WriteLine($"[DEBUG] Sending OTP to: {email}");
 
-                if (string.IsNullOrEmpty(smtpHost) || string.IsNullOrEmpty(smtpPort) || 
+                if (string.IsNullOrEmpty(smtpHost) || string.IsNullOrEmpty(smtpPort) ||
                     string.IsNullOrEmpty(smtpUsername) || string.IsNullOrEmpty(smtpPassword))
                 {
                     Console.WriteLine("[ERROR] SMTP configuration is missing!");
@@ -219,7 +214,6 @@ namespace backend.Services
                 await smtpClient.SendMailAsync(mailMessage);
                 _cache.Set(email, (otp, DateTime.UtcNow.AddMinutes(5)), TimeSpan.FromMinutes(5));
 
-                Console.WriteLine($"[SUCCESS] OTP sent successfully to {email}");
                 return true;
             }
             catch (Exception ex)
@@ -342,7 +336,7 @@ namespace backend.Services
             {
                 Id = user.Id,
                 Email = user.Email,
-                DisplayName = user.DisplayName ?? string.Empty,
+                DisplayName = user.DisplayName, // Không convert null thành empty string
                 Gender = user.Gender ?? string.Empty,
                 AvatarUrl = user.AvatarUrl,
                 CreatedAt = user.CreatedAt

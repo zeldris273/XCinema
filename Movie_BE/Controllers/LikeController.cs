@@ -44,6 +44,7 @@ namespace Movie_BE.Controllers
         }
 
         [HttpGet("stats")]
+        [AllowAnonymous] // Allow unauthenticated users to view like stats
         public async Task<IActionResult> GetLikeStats([FromQuery] int? movieId, [FromQuery] int? tvSeriesId, [FromQuery] int? commentId)
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;

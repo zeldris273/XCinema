@@ -13,7 +13,7 @@ const LikeDislikeButton = ({ movieId, tvSeriesId, className = "" }) => {
   const [loading, setLoading] = useState(false);
   const user = useSelector((state) => state.auth.user);
 
-  // Fetch like stats
+  // Fetch like stats (always fetch, even without login to show total counts)
   const fetchStats = async () => {
     try {
       const params = new URLSearchParams();
@@ -23,14 +23,19 @@ const LikeDislikeButton = ({ movieId, tvSeriesId, className = "" }) => {
       const response = await api.get(`/api/like/stats?${params.toString()}`);
       setStats(response.data);
     } catch (error) {
-      // Error fetching like stats
+      // Error fetching like stats, set default values
+      setStats({
+        totalLikes: 0,
+        totalDislikes: 0,
+        userLikeStatus: null,
+      });
     }
   };
 
   // Toggle like/dislike
   const handleToggle = async (isLike) => {
     if (!user) {
-      customToast.error("Please login to like/dislike");
+      customToast("Vui lòng đăng nhập để like/dislike", "warning");
       return;
     }
 
@@ -43,21 +48,21 @@ const LikeDislikeButton = ({ movieId, tvSeriesId, className = "" }) => {
       });
 
       if (response.data.removed) {
-        customToast.success(isLike ? "Like removed" : "Dislike removed");
+        customToast(isLike ? "Đã bỏ like" : "Đã bỏ dislike", "success");
       } else {
-        customToast.success(isLike ? "Liked!" : "Disliked!");
+        customToast(isLike ? "Đã like!" : "Đã dislike!", "success");
       }
 
       // Refresh stats
       await fetchStats();
     } catch (error) {
-      customToast.error("Failed to update like status");
+      customToast("Không thể cập nhật trạng thái", "error");
     } finally {
       setLoading(false);
     }
   };
 
-  // Fetch stats on mount
+  // Fetch stats on mount and when user changes
   useEffect(() => {
     if (movieId || tvSeriesId) {
       fetchStats();

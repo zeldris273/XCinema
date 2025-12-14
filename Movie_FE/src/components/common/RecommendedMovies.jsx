@@ -1,10 +1,13 @@
 import { useEffect, useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../../api/api";
 import { FaAngleLeft, FaAngleRight, FaPlay } from "react-icons/fa";
+import Slug from "../../utils/Slug";
 
 export default function RecommendedMovies({ movieId }) {
   const [movies, setMovies] = useState([]);
   const containerRef = useRef();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!movieId) return;
@@ -38,6 +41,17 @@ export default function RecommendedMovies({ movieId }) {
     containerRef.current.scrollLeft -= 300;
   };
 
+  const handleMovieClick = (movie) => {
+    // Navigate to detail page based on type with title slug
+    const titleSlug = Slug(movie.title);
+    
+    if (movie.type === "movie") {
+      navigate(`/movies/${movie.id}/${titleSlug}`);
+    } else if (movie.type === "tvseries") {
+      navigate(`/tvseries/${movie.id}/${titleSlug}`);
+    }
+  };
+
   if (!movies || movies.length === 0) return null;
 
   return (
@@ -52,6 +66,7 @@ export default function RecommendedMovies({ movieId }) {
           {movies.map((movie) => (
             <div
               key={movie.id}
+              onClick={() => handleMovieClick(movie)}
               className="flex-shrink-0 group relative cursor-pointer w-[260px]"
             >
               {/* Card với ảnh backdrop */}

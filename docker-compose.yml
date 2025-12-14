@@ -47,11 +47,36 @@ services:
     restart: "no"
 
 
+  ml-service:
+    build:
+      context: ./Ml_service/movie_recommends
+      dockerfile: Dockerfile
+    container_name: xcinema-ml-service
+    ports:
+      - "8000:8000"
+    networks:
+      - xcinema-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/docs')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+
   backend:
     build:
       context: ./Movie_BE
       dockerfile: Dockerfile
     container_name: xcinema-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migration:
+        condition: service_completed_successfully
+      ml-service:
+        condition: service_healthy
     environment:
       ASPNETCORE_URLS: ${ASPNETCORE_URLS}
 
@@ -95,13 +120,11 @@ services:
       # OPENAI
       OpenAI__ApiKey: ${OPENAI_API_KEY}
 
+      # FRONTEND
+      Frontend__Url: ${FRONTEND_URL}
+
     ports:
       - "5000:5000"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      migration:
-        condition: service_completed_successfully
     networks:
       - xcinema-network
     restart: unless-stopped
