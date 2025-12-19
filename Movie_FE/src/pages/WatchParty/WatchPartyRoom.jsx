@@ -70,7 +70,6 @@ const WatchPartyRoom = () => {
   const [hostInfo, setHostInfo] = useState({});
 
   const [messages, setMessages] = useState([]);
-  const [systemMessages, setSystemMessages] = useState([]);
   const [input, setInput] = useState("");
 
   const [userProfile, setUserProfile] = useState({
@@ -173,10 +172,14 @@ const WatchPartyRoom = () => {
             const minutes = Math.floor(timeDiff / 60000);
             const seconds = Math.floor((timeDiff % 60000) / 1000);
 
-            setSystemMessages((prev) => [
+            setMessages((prev) => [
               ...prev,
-              ` This session is scheduled to start automatically at ${scheduledDate.toLocaleString()}` +
-                ` (in ${minutes}m ${seconds}s)`,
+              { 
+                text: ` This session is scheduled to start automatically at ${scheduledDate.toLocaleString()}` +
+                  ` (in ${minutes}m ${seconds}s)`,
+                timestamp: Date.now(),
+                isSystem: true
+              },
             ]);
           }
         }
@@ -192,11 +195,11 @@ const WatchPartyRoom = () => {
     });
 
     hub.on("ReceiveChat", (user, text, avatar) => {
-      setMessages((prev) => [...prev, { user, text, avatar }]);
+      setMessages((prev) => [...prev, { user, text, avatar, timestamp: Date.now(), isSystem: false }]);
     });
 
     hub.on("ReceiveSystemMessage", (msg) => {
-      setSystemMessages((prev) => [...prev, msg]);
+      setMessages((prev) => [...prev, { text: msg, timestamp: Date.now(), isSystem: true }]);
     });
 
     // ======================================================
@@ -283,7 +286,9 @@ const WatchPartyRoom = () => {
     // 🚨 ERROR HANDLER
     // ======================================================
     hub.on("Error", (message) => {
-      customSwal("Error", message, "error");
+      customSwal("Error", message, "error").then(() => {
+        navigate("/");
+      });
     });
 
     // 🔥 Setup RoomCreated event listener
@@ -647,7 +652,6 @@ const WatchPartyRoom = () => {
         isChatHidden={isChatHidden}
         setIsChatHidden={setIsChatHidden}
         messages={messages}
-        systemMessages={systemMessages}
         input={input}
         setInput={setInput}
         handleKeyPress={handleKeyPress}

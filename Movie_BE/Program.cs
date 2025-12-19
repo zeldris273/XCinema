@@ -41,8 +41,8 @@ if (!string.IsNullOrEmpty(connectionString))
         .Replace("${DB_HOST}", Environment.GetEnvironmentVariable("DB_HOST") ?? "localhost")
         .Replace("${DB_NAME}", Environment.GetEnvironmentVariable("DB_NAME") ?? "XCinema")
         .Replace("${DB_PORT}", Environment.GetEnvironmentVariable("DB_PORT") ?? "5432")
-        .Replace("${DB_USERNAME}", Environment.GetEnvironmentVariable("DB_USERNAME") ?? "postgres")
-        .Replace("${DB_PASSWORD}", Environment.GetEnvironmentVariable("DB_PASSWORD") ?? "12345");
+        .Replace("${DB_USER}", Environment.GetEnvironmentVariable("DB_USERNAME") ?? "postgres")
+        .Replace("${DB_PASS}", Environment.GetEnvironmentVariable("DB_PASSWORD") ?? "12345");
 
     builder.Configuration["ConnectionStrings:DefaultConnection"] = connectionString;
 }
@@ -108,6 +108,9 @@ builder.Configuration["OpenAI:ApiKey"] = builder.Configuration["OpenAI:ApiKey"]?
 
 JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 JwtSecurityTokenHandler.DefaultOutboundClaimTypeMap.Clear();
+
+
+
 
 // Tăng giới hạn kích thước request body (2GB)
 builder.Services.Configure<IISServerOptions>(options =>
@@ -241,6 +244,11 @@ builder.Services.AddHttpClient();
 
 var app = builder.Build();
 
+app.Use(async (context, next) =>
+{
+    context.Response.Headers["ngrok-skip-browser-warning"] = "true";
+    await next();
+});
 
 // 1. Thêm vào Program.cs để debug roles
 using (var scope = app.Services.CreateScope())

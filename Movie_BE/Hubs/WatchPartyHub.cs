@@ -134,7 +134,7 @@ namespace backend.Hubs
             }
             else
             {
-                await Clients.Caller.SendAsync("JoinedRoom", roomId, false, null, null, null, DateTime.UtcNow, 0, null, false, null);
+                await Clients.Caller.SendAsync("Error", "Room not found or has ended.");
             }
         }
 

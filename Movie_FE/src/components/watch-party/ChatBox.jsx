@@ -7,7 +7,6 @@ const ChatBox = ({
   isChatHidden,
   setIsChatHidden,
   messages,
-  systemMessages = [],
   input,
   setInput,
   handleKeyPress,
@@ -18,14 +17,13 @@ const ChatBox = ({
   const [displayName, setDisplayName] = useState("");
   const [localUser, setLocalUser] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [showAuthModal, setShowAuthModal] = useState(false); // 🔥 NEW
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
     if (token) {
       try {
         const decoded = jwtDecode(token);
-        // JWT token chỉ có sub, email, role. Không có DisplayName!
         const displayName = decoded["email"] || decoded["sub"];
         setLocalUser(displayName);
         setIsLoggedIn(true);
@@ -67,19 +65,21 @@ const ChatBox = ({
         </div>
 
         {/* Messages */}
-        <div className="flex-1 p-4 overflow-y-auto space-y-3">
-          {/* System Messages */}
-          {systemMessages.map((msg, i) => (
-            <div
-              key={`sys-${i}`}
-              className="text-center text-gray-400 text-sm italic"
-            >
-              {msg}
-            </div>
-          ))}
-
+        <div className="flex-1 p-4 overflow-y-auto space-y-3 scrollbar-hide">
           {messages.map((m, i) => {
-            // So sánh với currentUser được truyền từ parent (đã có displayName đúng)
+            // Kiểm tra nếu là tin nhắn system
+            if (m.isSystem) {
+              return (
+                <div
+                  key={i}
+                  className="text-center text-gray-400 text-sm italic"
+                >
+                  {m.text}
+                </div>
+              );
+            }
+
+            // Tin nhắn người dùng
             const isMine = m.user === currentUser;
             return (
               <div
