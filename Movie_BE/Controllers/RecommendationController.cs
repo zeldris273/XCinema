@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using backend.Data;
 using backend.Dtos;
 using System.Net.Http.Json;
+using Movie_BE.Services;
 
 namespace backend.Controllers
 {
@@ -12,17 +13,43 @@ namespace backend.Controllers
         private readonly MovieDbContext _context;
         private readonly HttpClient _httpClient;
         private readonly string _mlServiceUrl;
+        private readonly IRedisCacheService _cache;
+        private readonly ILogger<RecommendationController> _logger;
 
-        public RecommendationController(MovieDbContext context, IHttpClientFactory httpClientFactory, IConfiguration configuration)
+        public RecommendationController(
+            MovieDbContext context,
+            IHttpClientFactory httpClientFactory,
+            IConfiguration configuration,
+            IRedisCacheService cache,
+            ILogger<RecommendationController> logger)
         {
             _context = context;
             _httpClient = httpClientFactory.CreateClient();
             _mlServiceUrl = configuration["MLService:BaseUrl"] ?? "http://localhost:8001";
+            _cache = cache;
+            _logger = logger;
         }
 
         [HttpGet("user/{userId}")]
         public async Task<IActionResult> GetRecommendations(int userId, int top_n = 10)
         {
+            var cacheKey = $"recommendations:user:{userId}:top:{top_n}";
+            
+            // Try cache first
+            try
+            {
+                var cachedResult = await _cache.GetAsync<List<object>>(cacheKey);
+                if (cachedResult != null && cachedResult.Count > 0)
+                {
+                    _logger.LogInformation("Recommendations for user {UserId} served from cache", userId);
+                    return Ok(cachedResult);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to get recommendations from cache for user {UserId}", userId);
+            }
+
             try
             {
                 // 🧠 Gọi FastAPI và deserialize thẳng vào model
@@ -71,6 +98,17 @@ namespace backend.Controllers
                     }
                 }
 
+                // Cache recommendations for 30 minutes
+                try
+                {
+                    await _cache.SetAsync(cacheKey, result, TimeSpan.FromMinutes(30));
+                    _logger.LogInformation("Recommendations for user {UserId} cached successfully", userId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to cache recommendations for user {UserId}", userId);
+                }
+
                 return Ok(result);
             }
             catch (Exception ex)
@@ -86,6 +124,23 @@ namespace backend.Controllers
         [HttpGet("similar/{movieId}")]
         public async Task<IActionResult> GetSimilarMovies(int movieId, [FromQuery] int top_n = 10)
         {
+            var cacheKey = $"recommendations:similar:{movieId}:top:{top_n}";
+            
+            // Try cache first
+            try
+            {
+                var cachedResult = await _cache.GetAsync<List<object>>(cacheKey);
+                if (cachedResult != null && cachedResult.Count > 0)
+                {
+                    _logger.LogInformation("Similar movies for movie {MovieId} served from cache", movieId);
+                    return Ok(cachedResult);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to get similar movies from cache for movie {MovieId}", movieId);
+            }
+
             try
             {
                 var response = await _httpClient.GetFromJsonAsync<SimilarResponseDto>(
@@ -136,6 +191,17 @@ namespace backend.Controllers
                             type = "tvseries"
                         });
                     }
+                }
+
+                // Cache similar movies for 30 minutes
+                try
+                {
+                    await _cache.SetAsync(cacheKey, result, TimeSpan.FromMinutes(30));
+                    _logger.LogInformation("Similar movies for movie {MovieId} cached successfully", movieId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to cache similar movies for movie {MovieId}", movieId);
                 }
 
                 return Ok(result);

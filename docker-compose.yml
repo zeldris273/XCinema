@@ -20,6 +20,23 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    container_name: xcinema-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - xcinema-network
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
 
   # ✅ MIGRATION - Sử dụng SDK image để chạy EF Core tools
   migration:
@@ -73,6 +90,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
       migration:
         condition: service_completed_successfully
       ml-service:
@@ -123,6 +142,10 @@ services:
       # FRONTEND
       Frontend__Url: ${FRONTEND_URL}
 
+      # REDIS
+      Redis__ConnectionString: ${REDIS_CONNECTION_STRING}
+      Redis__Password: ${REDIS_PASSWORD}
+
     ports:
       - "5000:5000"
     networks:
@@ -151,6 +174,8 @@ services:
 
 volumes:
   postgres_data:
+    driver: local
+  redis_data:
     driver: local
 
 networks:

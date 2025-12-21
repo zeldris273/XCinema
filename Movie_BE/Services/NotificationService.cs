@@ -24,10 +24,17 @@ namespace Movie_BE.Services
     public class NotificationService : INotificationService
     {
         private readonly MovieDbContext _context;
+        private readonly IRedisCacheService _cache;
+        private readonly ILogger<NotificationService> _logger;
 
-        public NotificationService(MovieDbContext context)
+        public NotificationService(
+            MovieDbContext context,
+            IRedisCacheService cache,
+            ILogger<NotificationService> logger)
         {
             _context = context;
+            _cache = cache;
+            _logger = logger;
         }
 
         public async Task CreateCommentReplyNotification(int parentCommentUserId, int repliedByUserId, int commentId, string movieTitle, string commentText)
@@ -54,6 +61,9 @@ namespace Movie_BE.Services
 
             _context.Notifications.Add(notification);
             await _context.SaveChangesAsync();
+            
+            // Increment unread count in cache
+            await InvalidateNotificationCache(parentCommentUserId);
         }
 
         public async Task CreateNewEpisodeNotifications(int tvSeriesId, int seasonNumber, int episodeNumber)
@@ -87,6 +97,12 @@ namespace Movie_BE.Services
 
             _context.Notifications.AddRange(notifications);
             await _context.SaveChangesAsync();
+            
+            // Invalidate notification cache for all affected users
+            foreach (var userId in usersWithWatchlist)
+            {
+                await InvalidateNotificationCache(userId);
+            }
         }
 
         public async Task<List<NotificationDTO>> GetUserNotifications(int userId, int page = 1, int pageSize = 20)
@@ -123,9 +139,38 @@ namespace Movie_BE.Services
 
         public async Task<int> GetUnreadCount(int userId)
         {
-            return await _context.Notifications
+            var cacheKey = $"notifications:unread:{userId}";
+            
+            // Try to get from cache
+            try
+            {
+                var cachedCount = await _cache.GetStringAsync(cacheKey);
+                if (cachedCount != null && int.TryParse(cachedCount, out int count))
+                {
+                    return count;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to get unread count from cache for user {UserId}", userId);
+            }
+            
+            // Get from database
+            var unreadCount = await _context.Notifications
                 .Where(n => n.UserId == userId && !n.IsRead)
                 .CountAsync();
+            
+            // Cache the result for 5 minutes
+            try
+            {
+                await _cache.SetStringAsync(cacheKey, unreadCount.ToString(), TimeSpan.FromMinutes(5));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to cache unread count for user {UserId}", userId);
+            }
+            
+            return unreadCount;
         }
 
         public async Task MarkAsRead(int notificationId, int userId)
@@ -137,6 +182,9 @@ namespace Movie_BE.Services
             {
                 notification.IsRead = true;
                 await _context.SaveChangesAsync();
+                
+                // Invalidate cache
+                await InvalidateNotificationCache(userId);
             }
         }
 
@@ -152,6 +200,9 @@ namespace Movie_BE.Services
             }
 
             await _context.SaveChangesAsync();
+            
+            // Invalidate cache
+            await InvalidateNotificationCache(userId);
         }
 
         public async Task DeleteNotification(int notificationId, int userId)
@@ -163,6 +214,22 @@ namespace Movie_BE.Services
             {
                 _context.Notifications.Remove(notification);
                 await _context.SaveChangesAsync();
+                
+                // Invalidate cache
+                await InvalidateNotificationCache(userId);
+            }
+        }
+        
+        private async Task InvalidateNotificationCache(int userId)
+        {
+            var cacheKey = $"notifications:unread:{userId}";
+            try
+            {
+                await _cache.DeleteAsync(cacheKey);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to invalidate notification cache for user {UserId}", userId);
             }
         }
     }

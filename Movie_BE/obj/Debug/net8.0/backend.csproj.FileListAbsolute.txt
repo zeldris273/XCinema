@@ -1023,3 +1023,5 @@ E:/XCinema/Movie_BE/bin/Debug/net8.0/publish/backend.runtimeconfig.json
 /src/obj/Debug/net8.0/backend.pdb
 /src/obj/Debug/net8.0/backend.genruntimeconfig.cache
 /src/obj/Debug/net8.0/ref/backend.dll
+/src/bin/Debug/net8.0/Pipelines.Sockets.Unofficial.dll
+/src/bin/Debug/net8.0/StackExchange.Redis.dll

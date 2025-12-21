@@ -17,6 +17,7 @@ using Microsoft.AspNetCore.Identity;
 using backend.Models;
 using System.IdentityModel.Tokens.Jwt;
 using DotNetEnv;
+using StackExchange.Redis;
 
 
 
@@ -106,6 +107,12 @@ builder.Configuration["MLService:BaseUrl"] = builder.Configuration["MLService:Ba
 builder.Configuration["OpenAI:ApiKey"] = builder.Configuration["OpenAI:ApiKey"]?
     .Replace("${OPENAI_API_KEY}", Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? "") ?? "";
 
+// 8. Redis Configuration
+builder.Configuration["Redis:ConnectionString"] = builder.Configuration["Redis:ConnectionString"]?
+    .Replace("${REDIS_CONNECTION_STRING}", Environment.GetEnvironmentVariable("REDIS_CONNECTION_STRING") ?? "localhost:6379") ?? "localhost:6379";
+builder.Configuration["Redis:Password"] = builder.Configuration["Redis:Password"]?
+    .Replace("${REDIS_PASSWORD}", Environment.GetEnvironmentVariable("REDIS_PASSWORD") ?? "") ?? "";
+
 JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 JwtSecurityTokenHandler.DefaultOutboundClaimTypeMap.Clear();
 
@@ -158,6 +165,27 @@ builder.Services.AddIdentity<CustomUser, IdentityRole<int>>(options =>
 
 // Đăng ký AuthService
 builder.Services.AddScoped<AuthService>();
+
+// Đăng ký Redis
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+{
+    var redisConnectionString = builder.Configuration["Redis:ConnectionString"];
+    var redisPassword = builder.Configuration["Redis:Password"];
+    
+    var configOptions = ConfigurationOptions.Parse(redisConnectionString);
+    if (!string.IsNullOrEmpty(redisPassword))
+    {
+        configOptions.Password = redisPassword;
+    }
+    configOptions.AbortOnConnectFail = false;
+    configOptions.ConnectTimeout = 10000;
+    configOptions.SyncTimeout = 10000;
+    
+    return ConnectionMultiplexer.Connect(configOptions);
+});
+
+builder.Services.AddSingleton<IRedisCacheService, RedisCacheService>();
+builder.Services.AddSingleton<IRedisWatchPartyService, RedisWatchPartyService>();
 
 // Đăng ký S3Service và IAmazonS3
 builder.Services.AddSingleton<IAmazonS3>(sp =>

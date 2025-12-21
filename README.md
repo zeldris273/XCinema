@@ -298,6 +298,7 @@ Nếu chạy trên local với không Docker thì hãy để file .env ở trong
 ```env
 ## Database configuration
 
+## Xóa đoạn này nếu không dùng docker
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=12345
 POSTGRES_DB=xcinema
@@ -472,7 +473,7 @@ XCinema/
 
 ### Tính Năng Mới
 
-- [ ] Mobile App (React Native)
+- [ ] Mobile App (FLutter)
 - [ ] Download offline
 - [ ] Subtitle support (multi-language)
 - [ ] Picture-in-Picture mode

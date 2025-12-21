@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using backend.Data;
+using Movie_BE.Services;
 
 namespace backend.Controllers
 {
@@ -9,16 +10,40 @@ namespace backend.Controllers
     public class TrendingController : ControllerBase
     {
         private readonly MovieDbContext _context;
+        private readonly IRedisCacheService _cache;
+        private readonly ILogger<TrendingController> _logger;
 
-        public TrendingController(MovieDbContext context)
+        public TrendingController(
+            MovieDbContext context,
+            IRedisCacheService cache,
+            ILogger<TrendingController> logger)
         {
             _context = context;
+            _cache = cache;
+            _logger = logger;
         }
 
         // ✅ Trending All (Movie + TVSeries)
         [HttpGet("all")]
         public async Task<IActionResult> GetTrendingAll()
         {
+            const string cacheKey = "trending:all";
+            
+            // Try to get from cache first
+            try
+            {
+                var cachedResult = await _cache.GetAsync<object>(cacheKey);
+                if (cachedResult != null)
+                {
+                    _logger.LogInformation("Trending data served from cache");
+                    return Ok(cachedResult);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to get trending from cache, falling back to database");
+            }
+
             var sevenDaysAgo = DateTime.UtcNow.AddDays(-7);
 
             var trendingMovies = await _context.Movies
@@ -70,6 +95,17 @@ namespace backend.Controllers
                 .OrderByDescending(x => x.trendingScore)
                 .Take(10)
                 .ToList();
+
+            // Cache the result for 15 minutes
+            try
+            {
+                await _cache.SetAsync(cacheKey, combined, TimeSpan.FromMinutes(15));
+                _logger.LogInformation("Trending data cached successfully");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to cache trending data");
+            }
 
             return Ok(combined);
         }
