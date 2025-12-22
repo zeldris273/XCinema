@@ -1,20 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "/src/backend.csproj": {}
+    "E:\\XCinema\\Movie_BE\\backend.csproj": {}
   },
   "projects": {
-    "/src/backend.csproj": {
+    "E:\\XCinema\\Movie_BE\\backend.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/src/backend.csproj",
+        "projectUniqueName": "E:\\XCinema\\Movie_BE\\backend.csproj",
         "projectName": "backend",
-        "projectPath": "/src/backend.csproj",
-        "packagesPath": "/root/.nuget/packages/",
-        "outputPath": "/src/obj/",
+        "projectPath": "E:\\XCinema\\Movie_BE\\backend.csproj",
+        "packagesPath": "C:\\Users\\nvh\\.nuget\\packages\\",
+        "outputPath": "E:\\XCinema\\Movie_BE\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "/root/.nuget/NuGet/NuGet.Config"
+          "C:\\Users\\nvh\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net8.0"
@@ -137,7 +137,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/8.0.416/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.201/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

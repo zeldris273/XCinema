@@ -49,7 +49,9 @@
 
 - **Framework**: ASP.NET Core 8.0 (Web API)
 - **Database**: PostgreSQL 15
+- **Cache**: Redis 7 (Session, Watch Party state)
 - **ORM**: Entity Framework Core 8.0.13
+- **Migration**: Go Migrate (Database versioning)
 - **Authentication**:
   - JWT Bearer Token
   - OAuth 2.0 (Google, GitHub)
@@ -175,7 +177,14 @@
 │   (Frontend)    │  HTTP   │   Web API       │  EF Core│   Database      │
 │                 │ SignalR │   (Backend)     │         │                 │
 └────────┬────────┘         └────────┬────────┘         └─────────────────┘
-         │                           │
+         │                           │                           ▲
+         │                           │                           │
+         │                  ┌────────▼────────┐         ┌────────┴────────┐
+         │                  │                 │         │                 │
+         │                  │   Redis Cache   │         │   Go Migrate    │
+         │                  │   (Session,     │         │   (Migration)   │
+         │                  │    WatchParty)  │         │                 │
+         │                  └─────────────────┘         └─────────────────┘
          │                           │
          │                  ┌────────▼────────┐
          │                  │                 │
@@ -197,11 +206,13 @@
 1. **User Request** → Frontend (React)
 2. **API Call** → Backend (ASP.NET Core) via Axios
 3. **Authentication** → JWT Token validation
-4. **Database Query** → PostgreSQL via Entity Framework
-5. **File Storage** → AWS S3 (videos, images)
-6. **Content Delivery** → CloudFront CDN
-7. **Real-time** → SignalR Hub (Watch Party, Notifications)
-8. **ML Recommendations** → FastAPI Service
+4. **Caching** → Redis (Session, Watch Party state)
+5. **Database Query** → PostgreSQL via Entity Framework
+6. **Database Migration** → Go Migrate (versioning)
+7. **File Storage** → AWS S3 (videos, images)
+8. **Content Delivery** → CloudFront CDN
+9. **Real-time** → SignalR Hub (Watch Party, Notifications)
+10. **ML Recommendations** → FastAPI Service
 
 ---
 
@@ -233,7 +244,9 @@ docker-compose logs -f
 
 - Frontend: http://localhost
 - Backend: http://localhost:5000
+- ML Service: http://localhost:8000
 - PostgreSQL: localhost:5432
+- Redis: localhost:6379
 
 ### 2️⃣ Chạy Thủ Công (Development)
 
@@ -309,6 +322,11 @@ DB_NAME=xcinema
 DB_USER=postgres
 DB_PASS=12345
 
+# Redis Configuration
+REDIS_PASSWORD=
+REDIS_CONNECTION_STRING=redis:6379
+
+
 ## AWS S3 configuration
 
 AWS_REGION=
@@ -380,6 +398,7 @@ XCinema/
 │   │   ├── AuthService.cs
 │   │   ├── RoomService.cs
 │   │   ├── S3Service.cs
+│   │   ├── RedisCacheService.cs
 │   │   └── NotificationService.cs
 │   ├── Hubs/                   # SignalR Hubs
 │   │   └── WatchPartyHub.cs
@@ -387,7 +406,7 @@ XCinema/
 │   │   └── MovieDbContext.cs
 │   ├── Migrations/             # EF Core Migrations
 │   └── Program.cs              # Entry Point
-│
+|
 ├── Movie_FE/                    # Frontend React
 │   ├── src/
 │   │   ├── components/         # React Components
@@ -410,7 +429,13 @@ XCinema/
 ├── Ml_service/                  # ML Service
 │   └── movie_recommends/
 │       ├── hybrid_api.py       # FastAPI Recommendation API
-│       └── model_train.ipynb   # Model Training
+│       ├── model_train.ipynb   # Model Training
+│       └── Dockerfile          # ML Service Docker Image
+│
+├── migrations/                  # Go Migrate SQL Scripts
+│   ├── 000001_initial_create.up.sql    # Initial schema
+│   ├── 000001_initial_create.down.sql  # Rollback script
+│   └── Dockerfile              # Migration Runner
 │
 ├── docker-compose.yml           # Docker Compose Config
 └── README.md
@@ -474,20 +499,14 @@ XCinema/
 ### Tính Năng Mới
 
 - [ ] Mobile App (FLutter)
-- [ ] Download offline
 - [ ] Subtitle support (multi-language)
 - [ ] Picture-in-Picture mode
-- [ ] Watch party voice chat
-- [ ] Playlist management
 - [ ] Advanced analytics dashboard
 
 ### Cải Tiến Kỹ Thuật
 
-- [ ] Implement Redis caching
-- [ ] Add rate limiting
 - [ ] Improve ML recommendation accuracy
 - [ ] Add E2E testing (Cypress)
-- [ ] Implement CDN for better performance
 - [ ] Add monitoring (Prometheus, Grafana)
 
 ### Bảo Mật
@@ -496,7 +515,6 @@ XCinema/
 - [ ] Content encryption
 - [ ] DRM protection
 - [ ] Rate limiting per user
-- [ ] CAPTCHA for registration
 
 ---
 
