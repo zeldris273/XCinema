@@ -213,7 +213,7 @@ const Header = () => {
 
             {/* APP DOWNLOAD */}
             <a
-              href="/downloads/xcinema.apk"
+              href="https://d2az2ylwxkh7fk.cloudfront.net/mobile/XCinema.apk"
               download
               className="flex items-center gap-3 px-3 py-2"
             >
