@@ -4,15 +4,17 @@ import { IoSendSharp } from 'react-icons/io5';
 
 const Chatbot = () => {
   const [messages, setMessages] = useState(() => {
-    const savedMessages = sessionStorage.getItem('chatHistory'); // Sử dụng sessionStorage
+    const savedMessages = sessionStorage.getItem('chatHistory');
     return savedMessages
       ? JSON.parse(savedMessages)
       : [
-          { text: 'Hello! I can help you find movies. Please describe the movie you’re looking for.', isUser: false },
+          { text: 'Hello! I can help you find movies. Please describe the movie you are looking for.', isUser: false },
         ];
   });
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [remainingQueries, setRemainingQueries] = useState(5);
+  const [maxQueries] = useState(5);
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -23,12 +25,24 @@ const Chatbot = () => {
     scrollToBottom();
   }, [messages]);
 
-  // Lưu messages vào sessionStorage mỗi khi messages thay đổi
   useEffect(() => {
     sessionStorage.setItem('chatHistory', JSON.stringify(messages));
   }, [messages]);
 
-  // Không cần sự kiện beforeunload nữa vì sessionStorage tự động xử lý khi đóng tab/trình duyệt
+  useEffect(() => {
+    fetchRemainingQueries();
+  }, []);
+
+  const fetchRemainingQueries = async () => {
+    try {
+      const response = await api.get('/api/Chatbot/remaining');
+      if (response.status === 200) {
+        setRemainingQueries(response.data.RemainingQueries);
+      }
+    } catch (error) {
+      console.error('Error fetching remaining queries:', error);
+    }
+  };
 
   const handleSendMessage = async () => {
     if (!input.trim()) return;
@@ -49,10 +63,14 @@ const Chatbot = () => {
 
       const searchCriteria = response.data;
 
+      if (searchCriteria.RemainingQueries !== undefined) {
+        setRemainingQueries(searchCriteria.RemainingQueries);
+      }
+
       let botMessage;
 
       if (searchCriteria.Error) {
-        botMessage = { text: `Error: ${searchCriteria.Error}`, isUser: false };
+        botMessage = { text: `${searchCriteria.Error}`, isUser: false };
       } else {
         const movies = searchCriteria.MovieTitles.map((title, index) => ({
           title: title,
@@ -64,7 +82,7 @@ const Chatbot = () => {
 
         botMessage = movies.length > 0
           ? { text: 'Here are the movies I found:', isUser: false, movies }
-          : { text: 'Sorry, I couldn’t find any movies matching your description.', isUser: false };
+          : { text: 'Sorry, I could not find any movies matching your description.', isUser: false };
       }
 
       setMessages((prev) => [...prev, botMessage]);
@@ -80,6 +98,9 @@ const Chatbot = () => {
 
   return (
     <div className="flex flex-col h-full">
+      <div className="p-2 bg-yellow-500 text-white text-center text-sm font-semibold border-b">
+        Daily Questions: {remainingQueries} / {maxQueries} remaining
+      </div>
       <div className="flex-1 p-2 overflow-y-auto">
         <div className="space-y-2">
           {messages.map((message, index) => (

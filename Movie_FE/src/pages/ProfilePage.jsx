@@ -7,7 +7,7 @@ export default function AccountPage() {
   const [avatar, setAvatar] = useState(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [gender, setGender] = useState("Nam");
+  const [gender, setGender] = useState("Male");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
@@ -21,7 +21,7 @@ export default function AccountPage() {
     if (profile) {
       setName(profile.displayName || "");
       setEmail(profile.email || "");
-      setGender(profile.gender || "Nam");
+      setGender(profile.gender || "Male");
       if (profile.avatarUrl) {
         setAvatar(profile.avatarUrl);
       }
@@ -31,15 +31,17 @@ export default function AccountPage() {
   const handleAvatarChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Kiểm tra kích thước file (tối đa 5MB)
+      // Check file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
-        setMessage("Kích thước file quá lớn. Vui lòng chọn file nhỏ hơn 5MB.");
+        setMessage(
+          "File size is too large. Please select a file smaller than 5MB."
+        );
         return;
       }
 
-      // Kiểm tra loại file
+      // Check file type
       if (!file.type.startsWith("image/")) {
-        setMessage("Vui lòng chọn file ảnh hợp lệ.");
+        setMessage("Please select a valid image file.");
         return;
       }
 
@@ -61,7 +63,7 @@ export default function AccountPage() {
       formData.append("displayName", name);
       formData.append("gender", gender);
 
-      // Thêm avatar nếu có file được chọn
+      // Add avatar if file is selected
       const fileInput = document.querySelector('input[type="file"]');
       if (fileInput && fileInput.files[0]) {
         formData.append("avatar", fileInput.files[0]);
@@ -73,17 +75,19 @@ export default function AccountPage() {
         },
       });
 
-      setMessage("Thông tin đã được cập nhật thành công!");
+      setMessage("Information updated successfully!");
 
-      // Cập nhật profile trong hook
+      // Update profile in hook
       updateProfile(response.data);
 
-      // Cập nhật avatar URL nếu có
+      // Update avatar URL if available
       if (response.data.avatarUrl) {
         setAvatar(response.data.avatarUrl);
       }
     } catch (error) {
-      setMessage("Có lỗi xảy ra khi cập nhật thông tin. Vui lòng thử lại.");
+      setMessage(
+        "An error occurred while updating information. Please try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -93,7 +97,7 @@ export default function AccountPage() {
     return (
       <div className="max-w-md mx-auto p-6 mt-12 text-white">
         <div className="flex justify-center items-center h-64">
-          <div className="text-lg">Đang tải...</div>
+          <div className="text-lg">Loading...</div>
         </div>
       </div>
     );
@@ -101,13 +105,13 @@ export default function AccountPage() {
 
   return (
     <div className="max-w-md mx-auto p-6 mt-12 text-white">
-      <h2 className="text-2xl font-bold mb-2">Tài khoản</h2>
-      <p className="mb-6 text-gray-300">Cập nhật thông tin tài khoản</p>
+      <h2 className="text-2xl font-bold mb-2">Account</h2>
+      <p className="mb-6 text-gray-300">Update account information</p>
 
       {message && (
         <div
           className={`mb-4 p-3 rounded ${
-            message.includes("thành công")
+            message.includes("successfully")
               ? "bg-green-600 text-white"
               : "bg-red-600 text-white"
           }`}
@@ -132,7 +136,7 @@ export default function AccountPage() {
           )}
         </div>
         <label className="mt-3 cursor-pointer text-sm text-yellow-400 hover:underline">
-          Cập nhật avatar
+          Update avatar
           <input
             type="file"
             accept="image/*"
@@ -155,7 +159,7 @@ export default function AccountPage() {
         </div>
 
         <div>
-          <label className="block mb-1">Tên hiển thị</label>
+          <label className="block mb-1">Display Name</label>
           <input
             type="text"
             value={name}
@@ -165,23 +169,23 @@ export default function AccountPage() {
         </div>
 
         <div>
-          <label className="block mb-2">Giới tính</label>
+          <label className="block mb-2">Gender</label>
           <div className="flex gap-6">
             <label className="flex items-center gap-2">
               <input
                 type="radio"
-                checked={gender === "Nam"}
-                onChange={() => setGender("Nam")}
+                checked={gender === "Male"}
+                onChange={() => setGender("Male")}
               />
-              Nam
+              Male
             </label>
             <label className="flex items-center gap-2">
               <input
                 type="radio"
-                checked={gender === "Nữ"}
-                onChange={() => setGender("Nữ")}
+                checked={gender === "Female"}
+                onChange={() => setGender("Female")}
               />
-              Nữ
+              Female
             </label>
           </div>
         </div>
@@ -195,17 +199,17 @@ export default function AccountPage() {
               : "bg-yellow-400 text-black hover:bg-yellow-500"
           }`}
         >
-          {loading ? "Đang cập nhật..." : "Cập nhật"}
+          {loading ? "Updating..." : "Update"}
         </button>
       </form>
 
       <p className="mt-6 text-gray-300">
-        Đổi mật khẩu, nhấn vào{" "}
+        To change password, click{" "}
         <button
           onClick={() => setShowForgotPasswordModal(true)}
           className="text-yellow-400 hover:underline focus:outline-none"
         >
-          đây
+          here
         </button>
       </p>
 

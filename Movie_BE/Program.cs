@@ -171,7 +171,7 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
 {
     var redisConnectionString = builder.Configuration["Redis:ConnectionString"];
     var redisPassword = builder.Configuration["Redis:Password"];
-    
+
     var configOptions = ConfigurationOptions.Parse(redisConnectionString);
     if (!string.IsNullOrEmpty(redisPassword))
     {
@@ -180,7 +180,7 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
     configOptions.AbortOnConnectFail = false;
     configOptions.ConnectTimeout = 10000;
     configOptions.SyncTimeout = 10000;
-    
+
     return ConnectionMultiplexer.Connect(configOptions);
 });
 
@@ -202,8 +202,11 @@ builder.Services.AddSingleton<IAmazonS3>(sp =>
 
 builder.Services.AddScoped<S3Service>();
 
-// Đăng ký MovieChatbotSearchService
-builder.Services.AddSingleton<MovieChatbotSearchService>();
+builder.Services.AddSingleton<IOpenAIClientService, OpenAIClientService>();
+
+builder.Services.AddScoped<IMovieChatbotService, ImprovedMovieChatbotService>();
+
+
 builder.Services.AddSingleton<RoomService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<ILikeService, LikeService>();

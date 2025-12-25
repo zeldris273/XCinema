@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using backend.Hubs;
+using Movie_BE.Models;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Hosting;
 
