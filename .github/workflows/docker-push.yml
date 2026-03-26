@@ -1,0 +1,64 @@
+name: Build & Push XCinema Images
+
+on:
+  push:
+    branches: [ "main" ]
+    paths-ignore:
+      - 'README.md'
+      - '.gitignore'
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # --- BUILD MIGRATION ---
+      - name: Build & Push Migration Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./migrations
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/xcinema-migration:latest
+            ${{ secrets.DOCKER_USERNAME }}/xcinema-migration:${{ github.sha }}
+
+      # --- BUILD ML SERVICE ---
+      - name: Build & Push ML Service Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./Ml_service/movie_recommends
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/xcinema-ml-service:latest
+            ${{ secrets.DOCKER_USERNAME }}/xcinema-ml-service:${{ github.sha }}
+
+      # --- BUILD BACKEND ---
+      - name: Build & Push Backend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./Movie_BE
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/xcinema-be:latest
+            ${{ secrets.DOCKER_USERNAME }}/xcinema-be:${{ github.sha }}
+
+      # --- BUILD FRONTEND ---
+      - name: Build & Push Frontend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./Movie_FE
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/xcinema-fe:latest
+            ${{ secrets.DOCKER_USERNAME }}/xcinema-fe:${{ github.sha }}

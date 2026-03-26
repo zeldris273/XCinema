@@ -377,7 +377,9 @@ VITE_BACKEND_API_URL=http://localhost:5116
 
 ```
 XCinema/
-│
+├── .github/
+│   └── workflows/
+│       └── docker-push.yml
 ├── Movie_BE/                    # Backend ASP.NET Core
 │   ├── Controllers/            # API Controllers
 │   │   ├── AuthController.cs
